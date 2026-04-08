@@ -37,3 +37,25 @@ jobs:
 
       - name: YC Function deploy
         uses: yc-actions/yc-sls-function@v4.1.0
+        with:
+          yc-sa-json-credentials: ${{ secrets.YC_SA_JSON_CREDENTIALS }}
+          bucket: ${{ secrets.BUCKET }}
+          folder-id: ${{ secrets.FOLDER_ID }}
+          function-name: 'goha'
+          runtime: 'golang123'
+          memory: '256Mb'
+          entrypoint: 'index.Handler'
+          environment: |
+            DEBUG=True
+            COUNT=1
+          include: |
+            ./src
+            package.json
+          exclude: |
+            **/*.ts
+          tags: |
+            ${{ GITHUB_SHA::6 }}
+            foo
+          # secrets: |
+            # DB_PASSWORD=lockbox-secret-id/latest/password
+            # API_KEY=lockbox-secret-id/abcdef123456/api_key
