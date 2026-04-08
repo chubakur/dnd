@@ -49,7 +49,7 @@ jobs:
             DEBUG=True
             COUNT=1
           include: |
-            ./src
+            ./src/*
           exclude: |
             **/*.ts
           # tags: |
