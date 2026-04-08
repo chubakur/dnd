@@ -50,7 +50,6 @@ jobs:
             COUNT=1
           include: |
             ./src
-            package.json
           exclude: |
             **/*.ts
           # tags: |
