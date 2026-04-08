@@ -53,9 +53,9 @@ jobs:
             package.json
           exclude: |
             **/*.ts
-          tags: |
-            ${{ GITHUB_SHA::6 }}
-            foo
+          # tags: |
+          #   ${{ GITHUB_SHA::6 }}
+          #   foo
           # secrets: |
             # DB_PASSWORD=lockbox-secret-id/latest/password
             # API_KEY=lockbox-secret-id/abcdef123456/api_key
