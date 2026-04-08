@@ -44,7 +44,7 @@ jobs:
           function-name: 'goha'
           runtime: 'golang123'
           memory: '256Mb'
-          entrypoint: 'index.Handler'
+          entrypoint: 'src/index.Handler'
           environment: |
             DEBUG=True
             COUNT=1
