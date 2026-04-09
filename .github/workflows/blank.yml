@@ -37,16 +37,13 @@ jobs:
           GOOS=linux GOARCH=amd64 go build -ldflags="-s -w" -o dnd-function
           echo "Binary size: $(du -h dnd-function | cut -f1)"
 
-      # Install YC CLI via pip
+      # Install YC CLI via snap
       - name: Install YC CLI
         run: |
-          # Try different package names
-          python3 -m pip install yandex-cloud || python3 -m pip install yandexcloud
-          # Find the CLI entry point
-          ls -la $HOME/.local/bin/ 2>/dev/null || echo "No .local/bin"
-          python3 -c "import pkg_resources; print([d for d in pkg_resources.working_set if 'yandex' in d.key])" 2>/dev/null || echo "No yandex packages found"
-          # Try to run yc directly
-          $HOME/.local/bin/yc --version 2>/dev/null || /opt/hostedtoolcache/Python/3.13.2/x64/bin/yc --version 2>/dev/null || echo "yc not executable"
+          sudo snap install yandex-cloud --classic
+          sudo snap alias yandex-cloud.yc yc || true
+          yc --version || echo "yc command not found, trying alternatives",
+          /snap/bin/yandex-cloud.yc --version || echo "Full path also not working"
 
       # Deploy function with binary
       - name: Deploy function to YC
