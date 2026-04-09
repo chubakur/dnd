@@ -45,11 +45,14 @@ jobs:
           runtime: 'golang123'
           memory: '256Mb'
           entrypoint: 'index.Handler'
+          source-root: '.'
           environment: |
             DEBUG=True
             COUNT=1
           include: |
-            ./src/*
+            ./*.go
+            ./go.mod
+            ./go.sum
           # tags: |
           #   ${{ GITHUB_SHA::6 }}
           #   foo
