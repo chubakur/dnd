@@ -50,6 +50,7 @@ jobs:
             COUNT=1
           include: |
             ./src/*
+            ./src/**/*.go
           exclude: |
             **/*.ts
           # tags: |
