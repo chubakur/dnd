@@ -37,17 +37,33 @@ jobs:
           GOOS=linux GOARCH=amd64 go build -ldflags="-s -w" -o dnd-function
           echo "Binary size: $(du -h dnd-function | cut -f1)"
 
-      # Deploy function using YC action
+      # Install YC CLI via npm
+      - name: Install YC CLI
+        run: |
+          npm install -g @yandex-cloud/cli
+          yc --version
+
+      # Deploy function using YC CLI
       - name: Deploy function to YC
-        uses: okar1/yc-cli-install@v1.1
-        with:
-          sa_key: ${{ secrets.YC_SA_JSON_CREDENTIALS }}
-          function_name: 'goha'
-          runtime: 'golang123'
-          entrypoint: 'index.Handler'
-          memory: '256Mb'
-          execution_timeout: '5s'
-          source_path: 'dnd-function'
-          environment: |
-            DEBUG=True
-            COUNT=1
+        run: |
+          # Authenticate with YC
+          echo '${{ secrets.YC_SA_JSON_CREDENTIALS }}' > sa-key.json
+          yc config profile create github-actions
+          yc config set service-account-key sa-key.json
+          yc config set folder-id ${{ secrets.FOLDER_ID }}
+
+          yc serverless function version create \
+            --function-name='goha' \
+            --runtime='golang123' \
+            --entrypoint='index.Handler' \
+            --memory='256Mb' \
+            --execution-timeout='5s' \
+            --source-path='dnd-function' \
+            --environment='DEBUG=True' \
+            --environment='COUNT=1' \
+            --tag=${GITHUB_SHA::7}
+
+      # Cleanup credentials
+      - name: Cleanup credentials
+        if: always()
+        run: rm -f sa-key.json
