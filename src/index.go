@@ -3,7 +3,11 @@ package main
 import (
 	"context"
 	"fmt"
+	"log"
 	"os"
+
+	ye "github.com/ydb-platform/ydb-go-sdk-auth-environ"
+	"github.com/ydb-platform/ydb-go-sdk/v3"
 )
 
 type Response struct {
@@ -19,7 +23,25 @@ func Handler(ctx context.Context) (*Response, error) {
 }
 
 func main() {
-	apiKey := os.Getenv("DEEPSEEK_API_KEY")
-	client := NewDeepSeekClient(apiKey)
-	fmt.Println(client.Query("Привет, дружище, я тут пытаюсь с тобой коннектнуться."))
+	// apiKey := os.Getenv("DEEPSEEK_API_KEY")
+	// client := NewDeepSeekClient(apiKey)
+	// fmt.Println(client.Query("Привет, дружище, я тут пытаюсь с тобой коннектнуться."))
+	connStr := os.Getenv("YDB_CONNECTION_STRING")
+	if connStr == "" {
+		log.Fatal("Set YDB_CONNECTION_STRING")
+	}
+	ctx, cancel := context.WithCancel(context.Background())
+	defer cancel()
+	db, err := ydb.Open(ctx,
+		connStr,
+		ye.WithEnvironCredentials(),
+	)
+	if err != nil {
+		panic(err)
+	}
+
+	defer func() {
+		_ = db.Close(ctx)
+	}()
+
 }
