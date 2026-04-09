@@ -10,15 +10,19 @@ import (
 	"github.com/ydb-platform/ydb-go-sdk/v3"
 )
 
+type Request struct {
+	Action string `json:"action"`
+}
+
 type Response struct {
 	StatusCode int         `json:"statusCode"`
 	Body       interface{} `json:"body"`
 }
 
-func Handler(ctx context.Context) (*Response, error) {
+func Handler(ctx context.Context, r *Request) (*Response, error) {
 	return &Response{
 		StatusCode: 200,
-		Body:       fmt.Sprintf("TestQ %d", 123),
+		Body:       fmt.Sprintf("TestQ: [%s]", r.Action),
 	}, nil
 }
 
