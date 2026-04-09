@@ -37,53 +37,17 @@ jobs:
           GOOS=linux GOARCH=amd64 go build -ldflags="-s -w" -o dnd-function
           echo "Binary size: $(du -h dnd-function | cut -f1)"
 
-      # Install YC CLI via APT
-      - name: Install YC CLI
-        run: |
-          # Add YC CLI repository
-          curl -sSL https://yandex.cloud/static/yc/install.sh | bash
-          # Find where yc was installed
-          which yc || find $HOME -name "yc" -type f 2>/dev/null | head -5
-          # Try to run it
-          $HOME/yandex.cloud/bin/yc --version 2>/dev/null || $HOME/yandex.cloud/yc --version 2>/dev/null || true
-
-      # Deploy function with binary
+      # Deploy function using YC action
       - name: Deploy function to YC
-        run: |
-          # Authenticate with YC
-          echo '${{ secrets.YC_SA_JSON_CREDENTIALS }}' > sa-key.json
-          yc config profile create github-actions
-          yc config set service-account-key sa-key.json
-          yc config set folder-id ${{ secrets.FOLDER_ID }}
-
-          # Create command parts
-          TAGS="--tag ${GITHUB_SHA::7}"
-          if [ -n "${{ vars.ADDITIONAL_TAG }}" ]; then
-            TAGS="$TAGS --tag ${{ vars.ADDITIONAL_TAG }}"
-          fi
-
-          # Add secrets if configured
-          SECRETS=""
-          if [ -n "${{ vars.DB_SECRET_ID }}" ]; then
-            SECRETS="$SECRETS --environment='DB_PASSWORD=lockbox-secret://${{ vars.DB_SECRET_ID }}/latest/password'"
-          fi
-          if [ -n "${{ vars.API_SECRET_ID }}" ]; then
-            SECRETS="$SECRETS --environment='API_KEY=lockbox-secret://${{ vars.API_SECRET_ID }}/latest/api_key'"
-          fi
-
-          yc serverless function version create \
-            --function-name='goha' \
-            --runtime='golang123' \
-            --entrypoint='index.Handler' \
-            --memory='256Mb' \
-            --execution-timeout='5s' \
-            --source-path='dnd-function' \
-            --environment='DEBUG=True' \
-            --environment='COUNT=1' \
-            $SECRETS \
-            $TAGS
-
-      # Cleanup credentials
-      - name: Cleanup credentials
-        if: always()
-        run: rm -f sa-key.json
+        uses: okar1/yc-cli-install@v1.1
+        with:
+          sa_key: ${{ secrets.YC_SA_JSON_CREDENTIALS }}
+          function_name: 'goha'
+          runtime: 'golang123'
+          entrypoint: 'index.Handler'
+          memory: '256Mb'
+          execution_timeout: '5s'
+          source_path: 'dnd-function'
+          environment: |
+            DEBUG=True
+            COUNT=1
