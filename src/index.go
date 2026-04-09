@@ -2,8 +2,9 @@ package main
 
 import (
 	"context"
-	"dnd/llm"
 	"fmt"
+
+	"github.com/chubakur/dnd/llm"
 )
 
 type Response struct {
