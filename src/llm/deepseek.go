@@ -1,5 +1,5 @@
 package llm
 
 func GetRand() int {
-	return 1234
+	return 12341
 }

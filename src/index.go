@@ -17,3 +17,7 @@ func Handler(ctx context.Context) (*Response, error) {
 		Body:       fmt.Sprintf("TestQ %d", llm.GetRand()),
 	}, nil
 }
+
+func main() {
+	fmt.Println(Handler(context.TODO()))
+}
