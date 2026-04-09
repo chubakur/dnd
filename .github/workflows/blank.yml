@@ -41,7 +41,12 @@ jobs:
       - name: Install YC CLI
         run: |
           python3 -m pip install yandexcloud
-          yc --version
+          echo "$HOME/.local/bin" >> $GITHUB_PATH
+          echo "/opt/pipx_bin" >> $GITHUB_PATH
+          echo "/opt/pipx/venvs/yandexcloud/bin" >> $GITHUB_PATH
+          # Find and test yc binary
+          find $HOME/.local -name "yc" -type f 2>/dev/null | head -1 || echo "yc not found in .local"
+          which yc || echo "yc not in PATH yet"
 
       # Deploy function with binary
       - name: Deploy function to YC
