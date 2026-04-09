@@ -3,8 +3,6 @@ package main
 import (
 	"context"
 	"fmt"
-
-	"github.com/chubakur/dnd/llm"
 )
 
 type Response struct {
@@ -15,7 +13,7 @@ type Response struct {
 func Handler(ctx context.Context) (*Response, error) {
 	return &Response{
 		StatusCode: 200,
-		Body:       fmt.Sprintf("TestQ %d", llm.GetRand()),
+		Body:       fmt.Sprintf("TestQ %d", GetRand()),
 	}, nil
 }
 
