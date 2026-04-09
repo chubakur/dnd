@@ -2,6 +2,8 @@ package main
 
 import (
 	"context"
+	"dnd/llm"
+	"fmt"
 )
 
 type Response struct {
@@ -12,6 +14,6 @@ type Response struct {
 func Handler(ctx context.Context) (*Response, error) {
 	return &Response{
 		StatusCode: 200,
-		Body:       "Test",
+		Body:       fmt.Sprintf("TestQ %d", llm.GetRand()),
 	}, nil
 }
