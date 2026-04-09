@@ -44,4 +44,12 @@ func main() {
 		_ = db.Close(ctx)
 	}()
 
+	res, err := db.Query().Query(ctx, "SELECT state_id FROM `players_states` WHERE user_id = 123")
+
+	if err != nil {
+		panic(err)
+	}
+
+	fmt.Println(res)
+
 }
