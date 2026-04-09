@@ -17,11 +17,8 @@ on:
 jobs:
   # This workflow contains a single job called "build"
   build:
-    # Use Docker image with YC CLI pre-installed
+    # The type of runner that the job will run on
     runs-on: ubuntu-latest
-    container:
-      image: cr.yandex/yc/cli:0.132.0
-      options: --user root
 
     # Steps represent a sequence of tasks that will be executed as part of the job
     steps:
@@ -39,6 +36,12 @@ jobs:
         run: |
           GOOS=linux GOARCH=amd64 go build -ldflags="-s -w" -o dnd-function
           echo "Binary size: $(du -h dnd-function | cut -f1)"
+
+      # Install YC CLI via pip
+      - name: Install YC CLI
+        run: |
+          python3 -m pip install yandexcloud
+          yc --version
 
       # Deploy function with binary
       - name: Deploy function to YC
