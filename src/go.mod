@@ -1,6 +1,6 @@
 module github.com/chubakur/dnd
 
-go 1.25.5
+go 1.23
 
 require (
 	github.com/ydb-platform/ydb-go-sdk-auth-environ v0.5.1
