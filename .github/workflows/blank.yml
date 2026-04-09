@@ -25,37 +25,50 @@ jobs:
       # Checks-out your repository under $GITHUB_WORKSPACE, so your job can access it
       - uses: actions/checkout@v4
 
-      # Runs a single command using the runners shell
-      - name: Run a one-line script
-        run: echo Hello, world!
+      # Setup Go environment
+      - name: Setup Go
+        uses: actions/setup-go@v5
+        with:
+          go-version: '1.25.5'
 
-      # Runs a set of commands using the runners shell
-      - name: Run a multi-line script
+      # Build Linux binary
+      - name: Build function binary
         run: |
-          echo Add other actions to build,
-          echo test, and deploy your project.
+          GOOS=linux GOARCH=amd64 go build -ldflags="-s -w" -o dnd-function
+          echo "Binary size: $(du -h dnd-function | cut -f1)"
 
-      - name: YC Function deploy
-        uses: yc-actions/yc-sls-function@v4.1.0
+      # Setup YC CLI
+      - name: Setup YC CLI
+        uses: yc-actions/setup-yc@v1
         with:
           yc-sa-json-credentials: ${{ secrets.YC_SA_JSON_CREDENTIALS }}
-          bucket: ${{ secrets.BUCKET }}
-          folder-id: ${{ secrets.FOLDER_ID }}
-          function-name: 'goha'
-          runtime: 'golang123'
-          memory: '256Mb'
-          entrypoint: 'index.Handler'
-          source-root: '.'
-          environment: |
-            DEBUG=True
-            COUNT=1
-          include: |
-            ./*.go
-            ./go.mod
-            ./go.sum
-          # tags: |
-          #   ${{ GITHUB_SHA::6 }}
-          #   foo
-          # secrets: |
-            # DB_PASSWORD=lockbox-secret-id/latest/password
-            # API_KEY=lockbox-secret-id/abcdef123456/api_key
+
+      # Deploy function with binary
+      - name: Deploy function to YC
+        run: |
+          # Create command parts
+          TAGS="--tag ${GITHUB_SHA::7}"
+          if [ -n "${{ vars.ADDITIONAL_TAG }}" ]; then
+            TAGS="$TAGS --tag ${{ vars.ADDITIONAL_TAG }}"
+          fi
+
+          # Add secrets if configured
+          SECRETS=""
+          if [ -n "${{ vars.DB_SECRET_ID }}" ]; then
+            SECRETS="$SECRETS --environment='DB_PASSWORD=lockbox-secret://${{ vars.DB_SECRET_ID }}/latest/password'"
+          fi
+          if [ -n "${{ vars.API_SECRET_ID }}" ]; then
+            SECRETS="$SECRETS --environment='API_KEY=lockbox-secret://${{ vars.API_SECRET_ID }}/latest/api_key'"
+          fi
+
+          yc serverless function version create \
+            --function-name='goha' \
+            --runtime='golang123' \
+            --entrypoint='index.Handler' \
+            --memory='256Mb' \
+            --execution-timeout='5s' \
+            --source-path='dnd-function' \
+            --environment='DEBUG=True' \
+            --environment='COUNT=1' \
+            $SECRETS \
+            $TAGS
