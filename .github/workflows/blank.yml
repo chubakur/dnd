@@ -42,10 +42,10 @@ jobs:
         run: |
           python3 -m pip install yandexcloud
           echo "$HOME/.local/bin" >> $GITHUB_PATH
-          echo "/opt/pipx_bin" >> $GITHUB_PATH
-          echo "/opt/pipx/venvs/yandexcloud/bin" >> $GITHUB_PATH
-          # Find and test yc binary
-          find $HOME/.local -name "yc" -type f 2>/dev/null | head -1 || echo "yc not found in .local"
+          # Also add to current session PATH
+          export PATH="$HOME/.local/bin:$PATH"
+          # Wait a moment and verify
+          sleep 2
           which yc || echo "yc not in PATH yet"
 
       # Deploy function with binary
