@@ -7,10 +7,6 @@ import (
 	"strings"
 )
 
-func GetRand() int {
-	return 12341
-}
-
 const (
 	deepseek_base_url = "https://api.deepseek.com/chat/completions"
 	deepseek_model    = "deepseek-chat"

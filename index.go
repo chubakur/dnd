@@ -20,6 +20,16 @@ type Response struct {
 }
 
 func Handler(ctx context.Context, r *Request) (*Response, error) {
+	if r.Action == "default" {
+		return defaultHandler(ctx, r)
+	}
+	return &Response{
+		StatusCode: 200,
+		Body:       fmt.Sprintf("TestQ: invalid"),
+	}, nil
+}
+
+func defaultHandler(_ context.Context, r *Request) (*Response, error) {
 	return &Response{
 		StatusCode: 200,
 		Body:       fmt.Sprintf("TestQ: [%s]", r.Action),
