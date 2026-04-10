@@ -3,15 +3,15 @@ package main
 import "context"
 
 type WorldDescription struct {
-	Id          int64  `sql:"id"`
-	Status      int8   `sql:"status"`
-	Name        string `sql:"name"`
-	Description string `sql:"description"`
+	Id          int64  `sql:"id" json:"id"`
+	Status      int8   `sql:"status" json:"status"`
+	Name        string `sql:"name" json:"name"`
+	Description string `sql:"description" json:"description"`
 }
 
 func GetWorldDescriptions(ctx context.Context, connections *transport) ([]WorldDescription, error) {
 	var worldDescriptions = make([]WorldDescription, 0)
-	rows, err := connections.ydbClient.Query().QueryResultSet(ctx, "SELECT * FROM world_descriptions")
+	rows, err := connections.ydbClient.Query().QueryResultSet(ctx, "SELECT id, status, name, description FROM world_descriptions")
 	if err != nil {
 		return worldDescriptions, err
 	}
