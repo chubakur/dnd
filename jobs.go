@@ -1,9 +1,9 @@
 package main
 
-type JobParams struct {
+type MasterJob interface {
+	GetName() string
 }
 
-type Job struct {
-	Action string    `json:"action"`
-	Params JobParams `json:"params"`
+type GenerateWorldJob struct {
+	MasterJob
 }
