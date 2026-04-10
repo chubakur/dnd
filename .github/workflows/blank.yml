@@ -37,15 +37,14 @@ jobs:
           GOOS=linux GOARCH=amd64 go build -ldflags="-s -w" -o dnd-function
           echo "Binary size: $(du -h dnd-function | cut -f1)"
 
-      # Install YC CLI via APT
+      # Install YC CLI via direct download
       - name: Install YC CLI
         run: |
-          # Add YC CLI repository
-          curl -sSL https://yandex.cloud/static/yc/install.sh | bash
-          # Find where yc was installed
-          which yc || find $HOME -name "yc" -type f 2>/dev/null | head -5
-          # Try to run it
-          $HOME/yandex.cloud/bin/yc --version 2>/dev/null || $HOME/yandex.cloud/yc --version 2>/dev/null || true
+          # Download YC CLI from GitHub releases mirror
+          wget -q https://github.com/ydb-platform/yc/releases/download/v0.132.0/yc-linux-amd64 -O yc
+          chmod +x yc
+          sudo mv yc /usr/local/bin/
+          yc --version
 
       # Deploy function with binary
       - name: Deploy function to YC
