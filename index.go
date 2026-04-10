@@ -15,16 +15,25 @@ type Response struct {
 	Body       interface{} `json:"body"`
 }
 
-func Handler(ctx context.Context, r *Request) (*Response, error) {
+func errorMsg(e error) (*Response, error) {
+	return &Response{
+		StatusCode: 500,
+		Body:       e.Error(),
+	}, nil
+}
+
+func Handler(ctx context.Context, r any) (any, error) {
+	fmt.Println(r)
+	return r, nil
+}
+
+func lHandler(ctx context.Context, r *Request) (*Response, error) {
 	if r.Action == "default" {
 		return defaultHandler(ctx, r, nil)
 	}
 	connectors, close, err := InitTransport(ctx)
 	if err != nil {
-		return &Response{
-			StatusCode: 500,
-			Body:       err.Error(),
-		}, nil
+		return errorMsg(err)
 	}
 	defer close()
 	if r.Action == "get_worlds" {
@@ -39,17 +48,11 @@ func Handler(ctx context.Context, r *Request) (*Response, error) {
 func worldsHandler(ctx context.Context, r *Request, connections *transport) (*Response, error) {
 	descs, err := GetWorldDescriptions(ctx, connections)
 	if err != nil {
-		return &Response{
-			StatusCode: 500,
-			Body:       err.Error(),
-		}, nil
+		return errorMsg(err)
 	}
 	b, err := json.Marshal(descs)
 	if err != nil {
-		return &Response{
-			StatusCode: 500,
-			Body:       err.Error(),
-		}, nil
+		return errorMsg(err)
 	}
 	return &Response{
 		StatusCode: 200,
