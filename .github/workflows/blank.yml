@@ -37,23 +37,25 @@ jobs:
           GOOS=linux GOARCH=amd64 go build -ldflags="-s -w" -o dnd-function
           echo "Binary size: $(du -h dnd-function | cut -f1)"
 
-      # Install YC CLI via direct download
+      # Install YC CLI via snap
       - name: Install YC CLI
         run: |
-          # Download YC CLI from GitHub releases mirror
-          wget -q https://github.com/ydb-platform/yc/releases/download/v0.132.0/yc-linux-amd64 -O yc
-          chmod +x yc
-          sudo mv yc /usr/local/bin/
-          yc --version
+          sudo snap install yandex-cloud --classic
+          sudo snap alias yandex-cloud.yc yc || true
+          yc --version || echo "yc command not found, trying alternatives",
+          /snap/bin/yandex-cloud.yc --version || echo "Full path also not working"
 
       # Deploy function with binary
       - name: Deploy function to YC
         run: |
+          # Use python module directly since yc is not in PATH
+          YC_CMD="python3 -m yandexcloud.cli"
+
           # Authenticate with YC
           echo '${{ secrets.YC_SA_JSON_CREDENTIALS }}' > sa-key.json
-          yc config profile create github-actions
-          yc config set service-account-key sa-key.json
-          yc config set folder-id ${{ secrets.FOLDER_ID }}
+          $YC_CMD config profile create github-actions
+          $YC_CMD config set service-account-key sa-key.json
+          $YC_CMD config set folder-id ${{ secrets.FOLDER_ID }}
 
           # Create command parts
           TAGS="--tag ${GITHUB_SHA::7}"
@@ -70,7 +72,7 @@ jobs:
             SECRETS="$SECRETS --environment='API_KEY=lockbox-secret://${{ vars.API_SECRET_ID }}/latest/api_key'"
           fi
 
-          yc serverless function version create \
+          $YC_CMD serverless function version create \
             --function-name='goha' \
             --runtime='golang123' \
             --entrypoint='index.Handler' \
