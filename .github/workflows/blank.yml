@@ -47,7 +47,7 @@ jobs:
           memory: '512Mb'
           execution-timeout: 30
           service-account: ${{ secrets.YC_SA_ID }}
-          entrypoint: 'index.Handler'
+          entrypoint: 'index.QueueHandler'
           source-root: '.'
           environment: |
             YDB_METADATA_CREDENTIALS=1
@@ -69,7 +69,7 @@ jobs:
           memory: '256Mb'
           execution-timeout: 10
           service-account: ${{ secrets.YC_SA_ID }}
-          entrypoint: 'index.lHandler'
+          entrypoint: 'index.WebhookHandler'
           source-root: '.'
           environment: |
             YDB_METADATA_CREDENTIALS=1

@@ -22,14 +22,14 @@ func errorMsg(e error) (*Response, error) {
 	}, nil
 }
 
-func Handler(ctx context.Context, r queueRequest) (any, error) {
+func QueueHandler(ctx context.Context, r queueRequest) (any, error) {
 
 	fmt.Println(r)
 
 	return r.Messages[0].Details.Message.Body, nil
 }
 
-func lHandler(ctx context.Context, r *Request) (*Response, error) {
+func WebhookHandler(ctx context.Context, r *Request) (*Response, error) {
 	if r.Action == "default" {
 		return defaultHandler(ctx, r, nil)
 	}
@@ -78,7 +78,7 @@ func main() {
 	req := &Request{
 		Action: "get_worlds",
 	}
-	resp, err := lHandler(ctx, req)
+	resp, err := WebhookHandler(ctx, req)
 	if err != nil {
 		panic(err)
 	}
