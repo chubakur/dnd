@@ -35,7 +35,7 @@ jobs:
           echo Add other actions to build,
           echo test, and deploy your project.
 
-      - name: YC Function deploy
+      - name: YC-queue-handler deploy
         uses: yc-actions/yc-sls-function@v4.1.0
         with:
           yc-sa-json-credentials: ${{ secrets.YC_SA_JSON_CREDENTIALS }}
@@ -48,6 +48,28 @@ jobs:
           execution-timeout: 30
           service-account: ${{ secrets.YC_SA_ID }}
           entrypoint: 'index.Handler'
+          source-root: '.'
+          environment: |
+            YDB_METADATA_CREDENTIALS=1
+            YDB_CONNECTION_STRING=${{ secrets.YDB_CONNECTION }}
+          include: |
+            ./*.go
+            ./go.mod
+            ./go.sum
+
+      - name: YC-webhook deploy
+        uses: yc-actions/yc-sls-function@v4.1.0
+        with:
+          yc-sa-json-credentials: ${{ secrets.YC_SA_JSON_CREDENTIALS }}
+          yc-sa-id: ${{ secrets.YC_SA_ID }}
+          bucket: ${{ secrets.BUCKET }}
+          folder-id: ${{ secrets.FOLDER_ID }}
+          function-name: 'goha-webhook'
+          runtime: 'golang123'
+          memory: '256Mb'
+          execution-timeout: 10
+          service-account: ${{ secrets.YC_SA_ID }}
+          entrypoint: 'index.lHandler'
           source-root: '.'
           environment: |
             YDB_METADATA_CREDENTIALS=1

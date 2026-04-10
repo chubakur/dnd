@@ -5,8 +5,8 @@ type queueMessage struct {
 	Body                   string            `json:"body"`
 	Md5OfBody              string            `json:"md5_of_body"`
 	Md5OfMessageAttributes string            `json:"md5_of_message_attributes"`
-	MessageAttributes      map[string]string `json:"message_attributes"`
-	MessageId              string            `json:"message_id"`
+	// MessageAttributes      map[string]string `json:"message_attributes"`
+	MessageId string `json:"message_id"`
 }
 
 type queueEventDetails struct {
