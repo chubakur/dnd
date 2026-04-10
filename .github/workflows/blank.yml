@@ -51,14 +51,11 @@ jobs:
       # Deploy function with binary
       - name: Deploy function to YC
         run: |
-          # Use python module directly since yc is not in PATH
-          YC_CMD="python3 -m yandexcloud.cli"
-
           # Authenticate with YC
           echo '${{ secrets.YC_SA_JSON_CREDENTIALS }}' > sa-key.json
-          $YC_CMD config profile create github-actions
-          $YC_CMD config set service-account-key sa-key.json
-          $YC_CMD config set folder-id ${{ secrets.FOLDER_ID }}
+          yc config profile create github-actions
+          yc config set service-account-key sa-key.json
+          yc config set folder-id ${{ secrets.FOLDER_ID }}
 
           # Create command parts
           TAGS="--tag ${GITHUB_SHA::7}"
@@ -75,7 +72,7 @@ jobs:
             SECRETS="$SECRETS --environment='API_KEY=lockbox-secret://${{ vars.API_SECRET_ID }}/latest/api_key'"
           fi
 
-          $YC_CMD serverless function version create \
+          yc serverless function version create \
             --function-name='goha' \
             --runtime='golang123' \
             --entrypoint='index.Handler' \
