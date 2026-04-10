@@ -45,6 +45,8 @@ jobs:
           function-name: 'goha'
           runtime: 'golang123'
           memory: '512Mb'
+          execution-timeout: 30
+          service-account: ${{ secrets.YC_SA_ID }}
           entrypoint: 'index.Handler'
           source-root: '.'
           environment: |
