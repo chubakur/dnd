@@ -22,9 +22,11 @@ func errorMsg(e error) (*Response, error) {
 	}, nil
 }
 
-func Handler(ctx context.Context, r any) (any, error) {
+func Handler(ctx context.Context, r queueRequest) (any, error) {
+
 	fmt.Println(r)
-	return r, nil
+
+	return r.Messages[0].Details.Message.Body, nil
 }
 
 func lHandler(ctx context.Context, r *Request) (*Response, error) {
