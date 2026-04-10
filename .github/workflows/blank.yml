@@ -40,13 +40,13 @@ jobs:
       # Install YC CLI via pip
       - name: Install YC CLI
         run: |
-          # Try different package names
-          python3 -m pip install yandex-cloud || python3 -m pip install yandexcloud
-          # Find the CLI entry point
-          ls -la $HOME/.local/bin/ 2>/dev/null || echo "No .local/bin"
-          python3 -c "import pkg_resources; print([d for d in pkg_resources.working_set if 'yandex' in d.key])" 2>/dev/null || echo "No yandex packages found"
-          # Try to run yc directly
-          $HOME/.local/bin/yc --version 2>/dev/null || /opt/hostedtoolcache/Python/3.13.2/x64/bin/yc --version 2>/dev/null || echo "yc not executable"
+          python3 -m pip install yandexcloud
+          # Find the actual module name
+          python3 -c "import pkgutil; print([m.name for m in pkgutil.iter_modules() if 'yandex' in m.name.lower()])"
+          # Try different module names
+          python3 -m yandexcloud 2>&1 | head -5 || echo "yandexcloud not a module"
+          # Try to find yc command
+          find $HOME -name "yc" -type f 2>/dev/null | head -5 || echo "yc not found"
 
       # Deploy function with binary
       - name: Deploy function to YC
