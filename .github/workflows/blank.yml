@@ -37,22 +37,15 @@ jobs:
           GOOS=linux GOARCH=amd64 go build -ldflags="-s -w" -o dnd-function
           echo "Binary size: $(du -h dnd-function | cut -f1)"
 
-      # Install YC CLI
-      - name: Install YC CLI
-        run: |
-          curl -sSL https://yandex.cloud | bash
-          echo "$HOME/yandex.cloud/bin" >> $GITHUB_PATH
-          echo "YC_SERVICE_ACCOUNT_KEY_FILE=${{ secrets.YC_SA_JSON_CREDENTIALS }}" >> $GITHUB_ENV
+      # Setup YC CLI
+      - name: Setup YC CLI
+        uses: yc-actions/setup-yc@v1
+        with:
+          yc-sa-json-credentials: ${{ secrets.YC_SA_JSON_CREDENTIALS }}
 
       # Deploy function with binary
       - name: Deploy function to YC
         run: |
-          # Authenticate with YC
-          echo '${{ secrets.YC_SA_JSON_CREDENTIALS }}' > sa-key.json
-          yc config profile create github-actions
-          yc config set service-account-key sa-key.json
-          yc config set folder-id ${{ secrets.FOLDER_ID }}
-
           # Create command parts
           TAGS="--tag ${GITHUB_SHA::7}"
           if [ -n "${{ vars.ADDITIONAL_TAG }}" ]; then
@@ -79,8 +72,3 @@ jobs:
             --environment='COUNT=1' \
             $SECRETS \
             $TAGS
-
-      # Cleanup credentials
-      - name: Cleanup credentials
-        if: always()
-        run: rm -f sa-key.json
