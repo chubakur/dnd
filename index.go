@@ -78,7 +78,7 @@ func main() {
 	req := &Request{
 		Action: "get_worlds",
 	}
-	resp, err := Handler(ctx, req)
+	resp, err := lHandler(ctx, req)
 	if err != nil {
 		panic(err)
 	}
