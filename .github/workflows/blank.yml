@@ -41,12 +41,12 @@ jobs:
       - name: Install YC CLI
         run: |
           python3 -m pip install yandexcloud
-          # Find the actual module name
-          python3 -c "import pkgutil; print([m.name for m in pkgutil.iter_modules() if 'yandex' in m.name.lower()])"
-          # Try different module names
-          python3 -m yandexcloud 2>&1 | head -5 || echo "yandexcloud not a module"
-          # Try to find yc command
-          find $HOME -name "yc" -type f 2>/dev/null | head -5 || echo "yc not found"
+          echo "$HOME/.local/bin" >> $GITHUB_PATH
+          # Also add to current session PATH
+          export PATH="$HOME/.local/bin:$PATH"
+          # Wait a moment and verify
+          sleep 2
+          which yc || echo "yc not in PATH yet"
 
       # Deploy function with binary
       - name: Deploy function to YC
