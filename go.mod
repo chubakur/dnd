@@ -4,7 +4,7 @@ go 1.25.0
 
 require (
 	github.com/ydb-platform/ydb-go-sdk-auth-environ v0.5.1
-	github.com/ydb-platform/ydb-go-sdk/v3 v3.134.0
+	github.com/ydb-platform/ydb-go-sdk/v3 v3.125.1-0.20251225121743-87aeb9029c8d
 )
 
 require (
