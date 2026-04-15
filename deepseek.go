@@ -14,10 +14,11 @@ const (
 
 type deepSeekClient struct {
 	apiKey string
+	tools  []*MCPTool
 }
 
-func NewDeepSeekClient(apiKey string) *deepSeekClient {
-	return &deepSeekClient{apiKey: apiKey}
+func NewDeepSeekClient(apiKey string, mcpTools []*MCPTool) *deepSeekClient {
+	return &deepSeekClient{apiKey: apiKey, tools: mcpTools}
 }
 
 type deepSeekRoleContent struct {
@@ -29,6 +30,7 @@ type deepSeekQuery struct {
 	Model    string                `json:"model"`
 	Stream   bool                  `json:"stream"`
 	Messages []deepSeekRoleContent `json:"messages"`
+	Tools    []WrappedMCPTool      `json:"tools"`
 }
 
 func NewLLMUserMessage(content string) deepSeekRoleContent {
@@ -40,7 +42,16 @@ func NewLLMSystemMessage(content string) deepSeekRoleContent {
 }
 
 func (c *deepSeekClient) Query(message string) (string, error) {
-	body := deepSeekQuery{Model: deepseek_model, Stream: false, Messages: []deepSeekRoleContent{NewLLMUserMessage(message)}}
+	wrappedTools := make([]WrappedMCPTool, len(c.tools))
+	for i, tool := range c.tools {
+		wrappedTools[i] = WrappedMCPTool{Type: "function", Function: tool}
+	}
+	body := deepSeekQuery{
+		Model:    deepseek_model,
+		Stream:   false,
+		Messages: []deepSeekRoleContent{NewLLMUserMessage(message)},
+		Tools:    wrappedTools,
+	}
 	json_body, err := json.Marshal(body)
 	if err != nil {
 		return "", err

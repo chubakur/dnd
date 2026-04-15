@@ -4,6 +4,7 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
+	"os"
 )
 
 type Request struct {
@@ -70,17 +71,24 @@ func defaultHandler(_ context.Context, r *Request, _ *transport) (*Response, err
 }
 
 func main() {
-	// apiKey := os.Getenv("DEEPSEEK_API_KEY")
-	// client := NewDeepSeekClient(apiKey)
-	// fmt.Println(client.Query("Привет, дружище, я тут пытаюсь с тобой коннектнуться."))
 	ctx, cancel := context.WithCancel(context.Background())
 	defer cancel()
-	req := &Request{
-		Action: "get_worlds",
-	}
-	resp, err := WebhookHandler(ctx, req)
+	apiKey := os.Getenv("DEEPSEEK_API_KEY")
+	connectors, close, err := InitTransport(ctx)
 	if err != nil {
 		panic(err)
 	}
-	fmt.Println(resp)
+	defer close()
+	tools := MCPGetTools(ctx, connectors)
+	client := NewDeepSeekClient(apiKey, tools)
+	fmt.Println(client.Query("Привет, дружище, подскажи, какие сеттинги для игры ты знаешь?"))
+
+	// req := &Request{
+	// 	Action: "get_worlds",
+	// }
+	// resp, err := WebhookHandler(ctx, req)
+	// if err != nil {
+	// 	panic(err)
+	// }
+	// fmt.Println(resp)
 }
