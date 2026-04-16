@@ -81,15 +81,22 @@ func main() {
 	defer close()
 	tools := MCPGetTools()
 	client := NewDeepSeekClient(apiKey, tools)
-	res, err := client.Query("Привет, дружище, подскажи, какие сеттинги для игры ты знаешь?")
+	mc := newMessageChain()
+	mc.addUserMessage("Привет, дружище, подскажи, какие сеттинги для игры ты знаешь?")
+	res, err := client.Query(mc)
 	fmt.Println(err)
 	fmt.Println(res)
 	for _, choice := range res.Choices {
+		mc.addMessage(choice.Message)
 		for _, toolCall := range choice.Message.ToolCalls {
 			mcp_result := MCPCall(ctx, connectors, toolCall)
 			fmt.Println(mcp_result)
+			mc.addToolMessage(mcp_result.Result, toolCall.Id)
 		}
 	}
+	res, err = client.Query(mc)
+	fmt.Println(err)
+	fmt.Println(res)
 	fmt.Println("END")
 
 	// req := &Request{

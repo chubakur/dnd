@@ -31,9 +31,10 @@ type deepseekResponseToolCall struct {
 }
 
 type deepSeekRoleContent struct {
-	Role      string                     `json:"role"`
-	Content   string                     `json:"content"`
-	ToolCalls []deepseekResponseToolCall `json:"tool_calls,omitempty"`
+	Role       string                     `json:"role"`
+	Content    string                     `json:"content"`
+	ToolCalls  []deepseekResponseToolCall `json:"tool_calls,omitempty"`
+	ToolCallId string                     `json:"tool_call_id,omitempty"`
 }
 
 type deepSeekQuery struct {
@@ -75,11 +76,7 @@ func NewLLMUserMessage(content string) deepSeekRoleContent {
 	return deepSeekRoleContent{Role: "user", Content: content}
 }
 
-func NewLLMSystemMessage(content string) deepSeekRoleContent {
-	return deepSeekRoleContent{Role: "system", Content: content}
-}
-
-func (c *deepSeekClient) Query(message string) (*deepseekResponse, error) {
+func (c *deepSeekClient) Query(mc *messageChain) (*deepseekResponse, error) {
 	wrappedTools := make([]WrappedMCPTool, len(c.tools))
 	for i, tool := range c.tools {
 		wrappedTools[i] = WrappedMCPTool{Type: "function", Function: tool}
@@ -87,7 +84,7 @@ func (c *deepSeekClient) Query(message string) (*deepseekResponse, error) {
 	body := deepSeekQuery{
 		Model:    deepseek_model,
 		Stream:   false,
-		Messages: []deepSeekRoleContent{NewLLMUserMessage(message)},
+		Messages: mc.chain,
 		Tools:    wrappedTools,
 	}
 	json_body, err := json.Marshal(body)
