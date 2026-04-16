@@ -20,6 +20,7 @@ func InitTransport(ctx context.Context) (*transport, DeferFunc, error) {
 	connStr := os.Getenv("YDB_CONNECTION_STRING")
 	if connStr == "" {
 		log.Fatal("Set YDB_CONNECTION_STRING")
+		panic("Set YDB_CONNECTION_STRING")
 	}
 	db, err := ydb.Open(ctx,
 		connStr,

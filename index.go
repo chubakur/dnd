@@ -79,9 +79,18 @@ func main() {
 		panic(err)
 	}
 	defer close()
-	tools := MCPGetTools(ctx, connectors)
+	tools := MCPGetTools()
 	client := NewDeepSeekClient(apiKey, tools)
-	fmt.Println(client.Query("Привет, дружище, подскажи, какие сеттинги для игры ты знаешь?"))
+	res, err := client.Query("Привет, дружище, подскажи, какие сеттинги для игры ты знаешь?")
+	fmt.Println(err)
+	fmt.Println(res)
+	for _, choice := range res.Choices {
+		for _, toolCall := range choice.Message.ToolCalls {
+			mcp_result := MCPCall(ctx, connectors, toolCall)
+			fmt.Println(mcp_result)
+		}
+	}
+	fmt.Println("END")
 
 	// req := &Request{
 	// 	Action: "get_worlds",
