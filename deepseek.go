@@ -2,6 +2,7 @@ package main
 
 import (
 	"encoding/json"
+	"fmt"
 	"net/http"
 	"strings"
 )
@@ -41,7 +42,7 @@ type deepSeekQuery struct {
 	Model    string                `json:"model"`
 	Stream   bool                  `json:"stream"`
 	Messages []deepSeekRoleContent `json:"messages"`
-	Tools    []WrappedMCPTool      `json:"tools"`
+	Tools    []wrappedMCPTool      `json:"tools"`
 }
 
 type deepseekResponseChoice struct {
@@ -77,9 +78,9 @@ func NewLLMUserMessage(content string) deepSeekRoleContent {
 }
 
 func (c *deepSeekClient) Query(mc *messageChain) (*deepseekResponse, error) {
-	wrappedTools := make([]WrappedMCPTool, len(c.tools))
+	wrappedTools := make([]wrappedMCPTool, len(c.tools))
 	for i, tool := range c.tools {
-		wrappedTools[i] = WrappedMCPTool{Type: "function", Function: tool}
+		wrappedTools[i] = tool.wrapJson()
 	}
 	body := deepSeekQuery{
 		Model:    deepseek_model,
@@ -92,6 +93,7 @@ func (c *deepSeekClient) Query(mc *messageChain) (*deepseekResponse, error) {
 		return nil, err
 	}
 	request, err := http.NewRequest("POST", deepseek_base_url, strings.NewReader(string(json_body)))
+	fmt.Println(string(json_body))
 	if err != nil {
 		return nil, err
 	}
@@ -103,7 +105,6 @@ func (c *deepSeekClient) Query(mc *messageChain) (*deepseekResponse, error) {
 		return nil, err
 	}
 	defer resp.Body.Close()
-	// resBody, err := io.ReadAll(resp.Body)
 	deepseekResult := deepseekResponse{}
 	decoder := json.NewDecoder(resp.Body)
 	err = decoder.Decode(&deepseekResult)

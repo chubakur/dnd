@@ -20,8 +20,8 @@ func (*messageChain) addAssistantMessage(message string) {
 
 }
 
-func (mc *messageChain) addToolMessage(message, toolCallId string) {
-	mc.chain = append(mc.chain, deepSeekRoleContent{Role: "tool", Content: message, ToolCallId: toolCallId})
+func (mc *messageChain) addToolMessage(mcpRes MCPResult) {
+	mc.chain = append(mc.chain, deepSeekRoleContent{Role: "tool", Content: mcpRes.Result, ToolCallId: mcpRes.ToolCallId})
 }
 
 func (mc *messageChain) addMessage(msg deepSeekRoleContent) {

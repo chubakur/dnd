@@ -91,7 +91,7 @@ func main() {
 		for _, toolCall := range choice.Message.ToolCalls {
 			mcp_result := MCPCall(ctx, connectors, toolCall)
 			fmt.Println(mcp_result)
-			mc.addToolMessage(mcp_result.Result, toolCall.Id)
+			mc.addToolMessage(mcp_result)
 		}
 	}
 	res, err = client.Query(mc)
