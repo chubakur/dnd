@@ -4,11 +4,10 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
-	"os"
 )
 
 type Request struct {
-	Action string `json:"action"`
+	Message string `json:"message"`
 }
 
 type Response struct {
@@ -31,20 +30,23 @@ func QueueHandler(ctx context.Context, r queueRequest) (any, error) {
 }
 
 func WebhookHandler(ctx context.Context, r *Request) (*Response, error) {
-	if r.Action == "default" {
-		return defaultHandler(ctx, r, nil)
-	}
 	connectors, close, err := InitTransport(ctx)
 	if err != nil {
 		return errorMsg(err)
 	}
 	defer close()
-	if r.Action == "get_worlds" {
-		return worldsHandler(ctx, r, connectors)
+	mc := newMessageChain()
+	mc.addUserMessage(r.Message)
+	res, err := connectors.deepSeekclient.Query(mc)
+	if err != nil {
+		return &Response{
+			StatusCode: 500,
+			Body:       err.Error(),
+		}, err
 	}
 	return &Response{
 		StatusCode: 200,
-		Body:       "TestQ: invalid",
+		Body:       res.Choices[0].Message.Content,
 	}, nil
 }
 
@@ -63,18 +65,10 @@ func worldsHandler(ctx context.Context, r *Request, connections *transport) (*Re
 	}, nil
 }
 
-func defaultHandler(_ context.Context, r *Request, _ *transport) (*Response, error) {
-	return &Response{
-		StatusCode: 200,
-		Body:       fmt.Sprintf("TestQ: [%s]", r.Action),
-	}, nil
-}
-
 func main() {
 	playerId := "8a852931-c090-42c9-b7d4-e9b69721174f"
 	ctx, cancel := context.WithCancel(context.Background())
 	defer cancel()
-	apiKey := os.Getenv("DEEPSEEK_API_KEY")
 	connectors, close, err := InitTransport(ctx)
 	if err != nil {
 		panic(err)
@@ -88,13 +82,12 @@ func main() {
 	// fmt.Println(activeSessions)
 	// fmt.Println(err)
 	// panic("end")
-	tools := MCPGetTools()
-	client := NewDeepSeekClient(apiKey, tools)
+
 	mc := newMessageChain()
 	// mc.addUserMessage("Привет, дружище, подскажи, какие сеттинги для игры ты знаешь?")
 	mc.addSystemMessage(fmt.Sprintf("Ты gamemaster, проводящий игры. Данный пользователь имеет uuid: %s", playerId))
 	mc.addUserMessage("Привет, дружище, подскажи, какие у меня есть активные сессии?")
-	res, err := client.Query(mc)
+	res, err := connectors.deepSeekclient.Query.Query(mc)
 	fmt.Println(err)
 	fmt.Println(res)
 	for _, choice := range res.Choices {
@@ -105,7 +98,7 @@ func main() {
 			mc.addToolMessage(mcp_result)
 		}
 	}
-	res, err = client.Query(mc)
+	res, err = connectors.deepSeekclient.Query(mc)
 	fmt.Println(err)
 	fmt.Println(res)
 	fmt.Println("END")
