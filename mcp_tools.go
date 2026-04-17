@@ -1,12 +1,14 @@
 package main
 
 import (
-	"context"
 	"encoding/json"
 	"fmt"
+	"strings"
+
+	"github.com/google/uuid"
 )
 
-type mcpToolFunc func(context.Context, *transport) (string, error)
+type mcpToolFunc func(*transport, *deepseekResponseToolCall) (string, error)
 
 type MCPTool struct {
 	Name        string            `json:"name"`
@@ -78,13 +80,36 @@ func (mc *MCPTool) wrapJson() wrappedMCPTool {
 	return result
 }
 
-func mcptool_getWorldDescriptions(ctx context.Context, t *transport) (string, error) {
-	descs, err := GetWorldDescriptions(ctx, t)
+func mcptool_getWorldDescriptions(t *transport, p *deepseekResponseToolCall) (string, error) {
+	descs, err := GetWorldDescriptions(t.ctx, t)
 	if err != nil {
 		return "", err
 	}
 
 	bytes, err := json.Marshal(descs)
+	if err != nil {
+		return "", err
+	}
+
+	return string(bytes), nil
+}
+
+func mcptool_getActiveSessions(t *transport, d *deepseekResponseToolCall) (string, error) {
+	type reqt struct {
+		PlayerId string `json:"player_id"`
+	}
+	var req reqt
+	decoder := json.NewDecoder(strings.NewReader(d.Function.Arguments))
+	err := decoder.Decode(&req)
+	if err != nil {
+		return "", err
+	}
+	uuid, err := uuid.Parse(req.PlayerId)
+	if err != nil {
+		return "", err
+	}
+	activeSessions, err := GetActivePlayerSessions(t, uuid)
+	bytes, err := json.Marshal(activeSessions)
 	if err != nil {
 		return "", err
 	}
@@ -110,16 +135,14 @@ func MCPGetTools() []*MCPTool {
 				Type: "object",
 				Properties: []mcpToolProperty{
 					{
-						Name:        "user_id",
+						Name:        "player_id",
 						Type:        "string",
 						Description: "UUID of current player.",
 						IsRequired:  true,
 					},
 				},
 			},
-			f: func(ctx context.Context, t *transport) (string, error) {
-				panic("Not implemented")
-			},
+			f: mcptool_getActiveSessions,
 		},
 	}
 
@@ -133,29 +156,29 @@ type MCPResult struct {
 	ToolCallId string
 }
 
-func MCPCall(ctx context.Context, t *transport, tool_query deepseekResponseToolCall) MCPResult {
+func MCPCall(t *transport, toolQuery deepseekResponseToolCall) MCPResult {
 	tools := MCPGetTools()
 	for _, tool := range tools {
-		if tool.Name == tool_query.Function.Name {
-			tool_result, err := tool.f(ctx, t)
+		if tool.Name == toolQuery.Function.Name {
+			toolResult, err := tool.f(t, &toolQuery)
 			if err != nil {
 				return MCPResult{
-					Function:   tool_query.Function.Name,
+					Function:   toolQuery.Function.Name,
 					Error:      err,
-					ToolCallId: tool_query.Id,
+					ToolCallId: toolQuery.Id,
 				}
 			}
 			return MCPResult{
-				Function:   tool_query.Function.Name,
-				Result:     tool_result,
-				ToolCallId: tool_query.Id,
+				Function:   toolQuery.Function.Name,
+				Result:     toolResult,
+				ToolCallId: toolQuery.Id,
 			}
 		}
 	}
 
 	return MCPResult{
-		Function:   tool_query.Function.Name,
-		Error:      fmt.Errorf("Error: tool %s not found", tool_query.Function.Name),
-		ToolCallId: tool_query.Id,
+		Function:   toolQuery.Function.Name,
+		Error:      fmt.Errorf("Error: tool %s not found", toolQuery.Function.Name),
+		ToolCallId: toolQuery.Id,
 	}
 }

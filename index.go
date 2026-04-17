@@ -5,8 +5,6 @@ import (
 	"encoding/json"
 	"fmt"
 	"os"
-
-	"github.com/google/uuid"
 )
 
 type Request struct {
@@ -82,25 +80,27 @@ func main() {
 		panic(err)
 	}
 	defer close()
-	playerUuid, err := uuid.Parse(playerId)
-	if err != nil {
-		panic(err)
-	}
-	activeSessions, err := GetActivePlayerSessions(connectors, playerUuid)
-	fmt.Println(activeSessions)
-	fmt.Println(err)
-	panic("end")
+	// playerUuid, err := uuid.Parse(playerId)
+	// if err != nil {
+	// 	panic(err)
+	// }
+	// activeSessions, err := GetActivePlayerSessions(connectors, playerUuid)
+	// fmt.Println(activeSessions)
+	// fmt.Println(err)
+	// panic("end")
 	tools := MCPGetTools()
 	client := NewDeepSeekClient(apiKey, tools)
 	mc := newMessageChain()
-	mc.addUserMessage("Привет, дружище, подскажи, какие сеттинги для игры ты знаешь?")
+	// mc.addUserMessage("Привет, дружище, подскажи, какие сеттинги для игры ты знаешь?")
+	mc.addSystemMessage(fmt.Sprintf("Ты gamemaster, проводящий игры. Данный пользователь имеет uuid: %s", playerId))
+	mc.addUserMessage("Привет, дружище, подскажи, какие у меня есть активные сессии?")
 	res, err := client.Query(mc)
 	fmt.Println(err)
 	fmt.Println(res)
 	for _, choice := range res.Choices {
 		mc.addMessage(choice.Message)
 		for _, toolCall := range choice.Message.ToolCalls {
-			mcp_result := MCPCall(ctx, connectors, toolCall)
+			mcp_result := MCPCall(connectors, toolCall)
 			fmt.Println(mcp_result)
 			mc.addToolMessage(mcp_result)
 		}
