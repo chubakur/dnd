@@ -87,7 +87,7 @@ func main() {
 	// mc.addUserMessage("Привет, дружище, подскажи, какие сеттинги для игры ты знаешь?")
 	mc.addSystemMessage(fmt.Sprintf("Ты gamemaster, проводящий игры. Данный пользователь имеет uuid: %s", playerId))
 	mc.addUserMessage("Привет, дружище, подскажи, какие у меня есть активные сессии?")
-	res, err := connectors.deepSeekclient.Query.Query(mc)
+	res, err := connectors.deepSeekclient.Query(mc)
 	fmt.Println(err)
 	fmt.Println(res)
 	for _, choice := range res.Choices {
