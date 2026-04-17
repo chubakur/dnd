@@ -14,6 +14,7 @@ type DeferFunc func()
 type transport struct {
 	ydbClient      *ydb.Driver
 	deepSeekclient *deepSeekClient
+	ctx            context.Context
 }
 
 func InitTransport(ctx context.Context) (*transport, DeferFunc, error) {
@@ -31,6 +32,7 @@ func InitTransport(ctx context.Context) (*transport, DeferFunc, error) {
 	}
 	tp := &transport{
 		ydbClient: db,
+		ctx:       ctx,
 	}
 	return tp, func() {
 		db.Close(ctx)

@@ -5,6 +5,8 @@ import (
 	"encoding/json"
 	"fmt"
 	"os"
+
+	"github.com/google/uuid"
 )
 
 type Request struct {
@@ -71,6 +73,7 @@ func defaultHandler(_ context.Context, r *Request, _ *transport) (*Response, err
 }
 
 func main() {
+	playerId := "8a852931-c090-42c9-b7d4-e9b69721174f"
 	ctx, cancel := context.WithCancel(context.Background())
 	defer cancel()
 	apiKey := os.Getenv("DEEPSEEK_API_KEY")
@@ -79,6 +82,14 @@ func main() {
 		panic(err)
 	}
 	defer close()
+	playerUuid, err := uuid.Parse(playerId)
+	if err != nil {
+		panic(err)
+	}
+	activeSessions, err := GetActivePlayerSessions(connectors, playerUuid)
+	fmt.Println(activeSessions)
+	fmt.Println(err)
+	panic("end")
 	tools := MCPGetTools()
 	client := NewDeepSeekClient(apiKey, tools)
 	mc := newMessageChain()
