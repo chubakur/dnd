@@ -45,7 +45,7 @@ jobs:
           function-name: 'goha-health'
           runtime: 'golang123'
           memory: '128Mb'
-          execution-timeout: 10
+          execution-timeout: 1
           service-account: ${{ secrets.YC_SA_ID }}
           entrypoint: 'health.HealthHandler'
           source-root: '.'
