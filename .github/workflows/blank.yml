@@ -61,7 +61,7 @@ jobs:
       - name: Health-check
         run: |
           sleep 20s
-          go test
+          HEALTH_CHECK_PROD_URL=${{ secrets.HEALTH_CHECK_PROD_URL }} go test
 
       - name: YC-queue-handler deploy
         uses: yc-actions/yc-sls-function@v4.1.0
