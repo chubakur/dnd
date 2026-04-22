@@ -3,6 +3,12 @@ package main
 import (
 	"context"
 	"fmt"
+	"os"
+
+	"github.com/chubakur/dnd/llmcore"
+	"github.com/chubakur/dnd/mcp"
+	"github.com/chubakur/dnd/transport"
+	"github.com/chubakur/dnd/types"
 )
 
 type Request struct {
@@ -14,6 +20,13 @@ type Response struct {
 	Body       any `json:"body"`
 }
 
+func QueueHandler(ctx context.Context, req *Request) (*Response, err) {
+	return &Response{
+		StatusCode: 200,
+		Body:       req.Message,
+	}, nil
+}
+
 func errorMsg(e error) (*Response, error) {
 	return &Response{
 		StatusCode: 500,
@@ -21,60 +34,50 @@ func errorMsg(e error) (*Response, error) {
 	}, nil
 }
 
-func QueueHandler(ctx context.Context, r queueRequest) (any, error) {
-
-	fmt.Println(r)
-
-	return r.Messages[0].Details.Message.Body, nil
-}
-
 func main() {
-	// playerId := "8a852931-c090-42c9-b7d4-e9b69721174f"
+	apiKey := os.Getenv("DEEPSEEK_API_KEY")
+	if apiKey == "" {
+		panic("Set DEEPSEEK_API_KEY")
+	}
 	ctx, cancel := context.WithCancel(context.Background())
 	defer cancel()
-	connectors, close, err := InitTransport(ctx)
+	t, close, err := transport.InitTransport(ctx)
 	if err != nil {
 		panic(err)
 	}
 	defer close()
-	test, err := getBindingByTgId(connectors, 1234)
-	fmt.Println(test)
-	fmt.Println(err)
-	// playerUuid, err := uuid.Parse(playerId)
-	// if err != nil {
-	// 	panic(err)
-	// }
-	// activeSessions, err := GetActivePlayerSessions(connectors, playerUuid)
-	// fmt.Println(activeSessions)
-	// fmt.Println(err)
-	// panic("end")
 
-	// mc := newMessageChain()
-	// mc.addUserMessage("Привет, дружище, подскажи, какие сеттинги для игры ты знаешь?")
-	// mc.addSystemMessage(fmt.Sprintf("Ты gamemaster, проводящий игры. Данный пользователь имеет uuid: %s", playerId))
-	// mc.addUserMessage("Привет, дружище, подскажи, какие у меня есть активные сессии?")
-	// res, err := connectors.deepSeekclient.Query(mc)
-	// fmt.Println(err)
-	// fmt.Println(res)
-	// for _, choice := range res.Choices {
-	// 	mc.addMessage(choice.Message)
-	// 	for _, toolCall := range choice.Message.ToolCalls {
-	// 		mcp_result := MCPCall(connectors, toolCall)
-	// 		fmt.Println(mcp_result)
-	// 		mc.addToolMessage(mcp_result)
-	// 	}
-	// }
-	// res, err = connectors.deepSeekclient.Query(mc)
-	// fmt.Println(err)
-	// fmt.Println(res)
-	// fmt.Println("END")
+	// Инициализация LLM клиента
+	tools := mcp.MCPGetTools()
+	client := llmcore.NewDeepSeekClient(apiKey, tools)
 
-	// req := &Request{
-	// 	Action: "get_worlds",
-	// }
-	// resp, err := WebhookHandler(ctx, req)
-	// if err != nil {
-	// 	panic(err)
-	// }
-	// fmt.Println(resp)
+	// Создаем цепочку сообщений
+	mc := llmcore.NewMessageChain()
+	mc.AddUserMessage("Привет, дружище, подскажи, какие сеттинги для игры ты знаешь?")
+	res, err := client.Query(mc)
+	if err != nil {
+		panic(err)
+	}
+	fmt.Printf("Response: %+v\n", res)
+
+	// Обработка tool calls
+	if len(res.Choices) > 0 && len(res.Choices[0].Message.ToolCalls) > 0 {
+		for _, toolCall := range res.Choices[0].Message.ToolCalls {
+			// Создаем transport adapter
+			transport := &types.Transport{
+				YdbClient: t.YdbClient,
+				Ctx:       ctx,
+			}
+			mcpResult := mcp.MCPCall(transport, toolCall)
+			fmt.Printf("MCP Result: %+v\n", mcpResult)
+			mc.AddToolMessage(mcpResult)
+		}
+	}
+
+	// Второй запрос с результатами tools
+	res2, err := client.Query(mc)
+	if err != nil {
+		panic(err)
+	}
+	fmt.Printf("Final response: %s\n", res2.Choices[0].Message.Content)
 }

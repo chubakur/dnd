@@ -1,4 +1,4 @@
-package main
+package transport
 
 type queueMessage struct {
 	Attributes             map[string]string `json:"attributes"`

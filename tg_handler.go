@@ -1,6 +1,15 @@
 package main
 
-import "context"
+import (
+	"context"
+	"fmt"
+	"os"
+
+	"github.com/chubakur/dnd/llmcore"
+	"github.com/chubakur/dnd/mcp"
+	"github.com/chubakur/dnd/transport"
+	"github.com/chubakur/dnd/types"
+)
 
 type TgRequest struct {
 	Message string `json:"message"`
@@ -8,20 +17,54 @@ type TgRequest struct {
 }
 
 func WebhookHandler(ctx context.Context, r *TgRequest) (*Response, error) {
-	connectors, close, err := InitTransport(ctx)
+	t, close, err := transport.InitTransport(ctx)
 	if err != nil {
 		return errorMsg(err)
 	}
 	defer close()
-	mc := newMessageChain()
-	mc.addUserMessage(r.Message)
-	res, err := connectors.deepSeekclient.Query(mc)
-	if err != nil {
-		return &Response{
-			StatusCode: 500,
-			Body:       err.Error(),
-		}, err
+
+	apiKey := os.Getenv("DEEPSEEK_API_KEY")
+	if apiKey == "" {
+		return errorMsg(fmt.Errorf("DEEPSEEK_API_KEY not set"))
 	}
+
+	// Получаем MCP tools
+	tools := mcp.MCPGetTools()
+
+	// Инициализируем LLM клиент
+	client := llmcore.NewDeepSeekClient(apiKey, tools)
+
+	// Создаем цепочку сообщений
+	mc := llmcore.NewMessageChain()
+	mc.AddUserMessage(r.Message)
+
+	// Выполняем запрос
+	res, err := client.Query(mc)
+	if err != nil {
+		return errorMsg(err)
+	}
+
+	// Проверяем, есть ли tool calls
+	if len(res.Choices) > 0 && len(res.Choices[0].Message.ToolCalls) > 0 {
+		// Создаем transport adapter
+		transport := &types.Transport{
+			YdbClient: t.YdbClient,
+			Ctx:       ctx,
+		}
+
+		// Обрабатываем tool calls
+		for _, toolCall := range res.Choices[0].Message.ToolCalls {
+			mcpResult := mcp.MCPCall(transport, toolCall)
+			mc.AddToolMessage(mcpResult)
+		}
+
+		// Второй запрос с результатами tools
+		res, err = client.Query(mc)
+		if err != nil {
+			return errorMsg(err)
+		}
+	}
+
 	return &Response{
 		StatusCode: 200,
 		Body:       res.Choices[0].Message.Content,

@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"time"
 
+	"github.com/chubakur/dnd/transport"
 	"github.com/google/uuid"
 )
 
@@ -13,8 +14,8 @@ type TgBinding struct {
 	BindTime time.Time `sql:"bind_time"`
 }
 
-func getBindingByTgId(t *transport, tgId int64) (*TgBinding, error) {
-	row, err := t.ydbClient.Query().QueryRow(t.ctx, fmt.Sprintf("SELECT player_id, tg_id, bind_time FROM tg_bindings WHERE tg_id = %d", tgId))
+func getBindingByTgId(t *transport.Transport, tgId int64) (*TgBinding, error) {
+	row, err := t.YdbClient.Query().QueryRow(t.Ctx, fmt.Sprintf("SELECT player_id, tg_id, bind_time FROM tg_bindings WHERE tg_id = %d", tgId))
 	if err != nil {
 		return nil, err
 	}

@@ -1,10 +1,13 @@
-package main
+package llmcore
 
 import (
 	"encoding/json"
 	"fmt"
 	"net/http"
 	"strings"
+
+	"github.com/chubakur/dnd/mcp"
+	"github.com/chubakur/dnd/types"
 )
 
 const (
@@ -14,27 +17,18 @@ const (
 
 type deepSeekClient struct {
 	apiKey string
-	tools  []*MCPTool
+	tools  []*mcp.MCPTool
 }
 
-func NewDeepSeekClient(apiKey string, mcpTools []*MCPTool) *deepSeekClient {
+func NewDeepSeekClient(apiKey string, mcpTools []*mcp.MCPTool) *deepSeekClient {
 	return &deepSeekClient{apiKey: apiKey, tools: mcpTools}
 }
 
-type deepseekResponseToolCall struct {
-	Index    int    `json:"index"`
-	Id       string `json:"id"`
-	Type     string `json:"type"`
-	Function struct {
-		Name      string `json:"name"`
-		Arguments string `json:"arguments"`
-	} `json:"function"`
-}
 
 type deepSeekRoleContent struct {
 	Role       string                     `json:"role"`
 	Content    string                     `json:"content"`
-	ToolCalls  []deepseekResponseToolCall `json:"tool_calls,omitempty"`
+	ToolCalls  []types.DeepseekResponseToolCall `json:"tool_calls,omitempty"`
 	ToolCallId string                     `json:"tool_call_id,omitempty"`
 }
 
@@ -42,7 +36,7 @@ type deepSeekQuery struct {
 	Model    string                `json:"model"`
 	Stream   bool                  `json:"stream"`
 	Messages []deepSeekRoleContent `json:"messages"`
-	Tools    []wrappedMCPTool      `json:"tools"`
+	Tools    []types.WrappedMCPTool      `json:"tools"`
 }
 
 type deepseekResponseChoice struct {
@@ -73,14 +67,40 @@ type deepseekResponse struct {
 	SystemFingerprint string                   `json:"system_fingerprint"`
 }
 
+func wrapMcp(mc *mcp.MCPTool) types.WrappedMCPTool {
+	result := types.WrappedMCPTool{
+		Type: "function",
+		Function: types.WrappedMCPFunction{
+			Type:        mc.Parameters.Type,
+			Name:        mc.Name,
+			Description: mc.Description,
+			Parameters: types.WrappedMCPFunctionParameters{
+				Type:       "object",
+				Properties: make(map[string]types.WrappedMCPFunctionParametersProperty),
+				Required:   make([]string, 0),
+			},
+		},
+	}
+	for _, param := range mc.Parameters.Properties {
+		result.Function.Parameters.Properties[param.Name] = types.WrappedMCPFunctionParametersProperty{
+			Type:        param.Type,
+			Description: param.Description,
+		}
+		if param.IsRequired {
+			result.Function.Parameters.Required = append(result.Function.Parameters.Required, param.Name)
+		}
+	}
+	return result
+}
+
 func NewLLMUserMessage(content string) deepSeekRoleContent {
 	return deepSeekRoleContent{Role: "user", Content: content}
 }
 
 func (c *deepSeekClient) Query(mc *messageChain) (*deepseekResponse, error) {
-	wrappedTools := make([]wrappedMCPTool, len(c.tools))
+	wrappedTools := make([]types.WrappedMCPTool, len(c.tools))
 	for i, tool := range c.tools {
-		wrappedTools[i] = tool.wrapJson()
+		wrappedTools[i] = wrapMcp(tool)
 	}
 	body := deepSeekQuery{
 		Model:    deepseek_model,
