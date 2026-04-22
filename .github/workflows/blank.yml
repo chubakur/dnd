@@ -54,7 +54,7 @@ jobs:
             YDB_CONNECTION_STRING=${{ secrets.YDB_CONNECTION }}
             DEEPSEEK_API_KEY=${{ secrets.DEEPSEEK_API_KEY }}
           include: |
-            ./*.go
+            ./**/*.go
             ./go.mod
             ./go.sum
 
@@ -81,7 +81,7 @@ jobs:
             YDB_METADATA_CREDENTIALS=1
             YDB_CONNECTION_STRING=${{ secrets.YDB_CONNECTION }}
           include: |
-            ./*.go
+            ./**/*.go
             ./go.mod
             ./go.sum
 
@@ -104,7 +104,7 @@ jobs:
             YDB_CONNECTION_STRING=${{ secrets.YDB_CONNECTION }}
             DEEPSEEK_API_KEY=${{ secrets.DEEPSEEK_API_KEY }}
           include: |
-            ./*.go
+            ./**/*.go
             ./go.mod
             ./go.sum
           # tags: |
