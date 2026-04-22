@@ -20,7 +20,7 @@ type Response struct {
 	Body       any `json:"body"`
 }
 
-func QueueHandler(ctx context.Context, req *Request) (*Response, err) {
+func QueueHandler(ctx context.Context, req *Request) (*Response, error) {
 	return &Response{
 		StatusCode: 200,
 		Body:       req.Message,
