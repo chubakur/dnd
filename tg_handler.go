@@ -46,6 +46,7 @@ func WebhookHandler(ctx context.Context, r *TgRequest) (*Response, error) {
 
 	// Проверяем, есть ли tool calls
 	if len(res.Choices) > 0 && len(res.Choices[0].Message.ToolCalls) > 0 {
+		mc.AddMessage(res.Choices[0].Message)
 		// Создаем transport adapter
 		transport := &types.Transport{
 			YdbClient: t.YdbClient,

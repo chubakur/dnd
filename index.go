@@ -62,6 +62,7 @@ func main() {
 
 	// Обработка tool calls
 	if len(res.Choices) > 0 && len(res.Choices[0].Message.ToolCalls) > 0 {
+		mc.AddMessage(res.Choices[0].Message)
 		for _, toolCall := range res.Choices[0].Message.ToolCalls {
 			// Создаем transport adapter
 			transport := &types.Transport{
