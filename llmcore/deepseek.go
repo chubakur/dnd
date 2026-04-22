@@ -24,19 +24,18 @@ func NewDeepSeekClient(apiKey string, mcpTools []*mcp.MCPTool) *deepSeekClient {
 	return &deepSeekClient{apiKey: apiKey, tools: mcpTools}
 }
 
-
 type deepSeekRoleContent struct {
-	Role       string                     `json:"role"`
-	Content    string                     `json:"content"`
+	Role       string                           `json:"role"`
+	Content    string                           `json:"content"`
 	ToolCalls  []types.DeepseekResponseToolCall `json:"tool_calls,omitempty"`
-	ToolCallId string                     `json:"tool_call_id,omitempty"`
+	ToolCallId string                           `json:"tool_call_id,omitempty"`
 }
 
 type deepSeekQuery struct {
-	Model    string                `json:"model"`
-	Stream   bool                  `json:"stream"`
-	Messages []deepSeekRoleContent `json:"messages"`
-	Tools    []types.WrappedMCPTool      `json:"tools"`
+	Model    string                 `json:"model"`
+	Stream   bool                   `json:"stream"`
+	Messages []deepSeekRoleContent  `json:"messages"`
+	Tools    []types.WrappedMCPTool `json:"tools"`
 }
 
 type deepseekResponseChoice struct {
@@ -126,6 +125,7 @@ func (c *deepSeekClient) Query(mc *messageChain) (*deepseekResponse, error) {
 	}
 	defer resp.Body.Close()
 	deepseekResult := deepseekResponse{}
+	// TODO: decode errors if not 200
 	decoder := json.NewDecoder(resp.Body)
 	err = decoder.Decode(&deepseekResult)
 	if err != nil {

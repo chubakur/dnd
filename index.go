@@ -4,11 +4,13 @@ import (
 	"context"
 	"fmt"
 	"os"
+	"strings"
 
 	"github.com/chubakur/dnd/llmcore"
 	"github.com/chubakur/dnd/mcp"
 	"github.com/chubakur/dnd/transport"
 	"github.com/chubakur/dnd/types"
+	"github.com/ydb-platform/ydb-go-sdk/v3/topic/topicwriter"
 )
 
 type Request struct {
@@ -23,7 +25,7 @@ type Response struct {
 func QueueHandler(ctx context.Context, req *Request) (*Response, error) {
 	return &Response{
 		StatusCode: 200,
-		Body:       req.Message,
+		Body:       req.Message + " Ok",
 	}, nil
 }
 
@@ -46,6 +48,21 @@ func main() {
 		panic(err)
 	}
 	defer close()
+
+	writer, err := t.YdbClient.Topic().StartWriter("jobs")
+	if err != nil {
+		panic(err)
+	}
+	err = writer.Write(ctx, topicwriter.Message{Data: strings.NewReader("Hello 3123 123")})
+	if err != nil {
+		panic(err)
+	}
+	err = writer.Flush(ctx)
+	if err != nil {
+		panic(err)
+	}
+
+	panic("EXIT!")
 
 	// Инициализация LLM клиента
 	tools := mcp.MCPGetTools()
