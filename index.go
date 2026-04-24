@@ -6,10 +6,13 @@ import (
 	"os"
 	"strings"
 
+	"github.com/chubakur/dnd/async"
 	"github.com/chubakur/dnd/llmcore"
 	"github.com/chubakur/dnd/mcp"
+	"github.com/chubakur/dnd/messages"
 	"github.com/chubakur/dnd/transport"
 	"github.com/chubakur/dnd/types"
+	"github.com/google/uuid"
 	"github.com/ydb-platform/ydb-go-sdk/v3/topic/topicwriter"
 )
 
@@ -49,11 +52,52 @@ func main() {
 	}
 	defer close()
 
+	asyncTask := async.AsyncTaskChatLlmStruct{
+		PlayerId: uuid.MustParse("4e54ac3e-9c91-4dc0-a582-9439f8756a3a"),
+		ChatId:   uuid.MustParse("40fce1fe-5b56-424c-b1e2-1da6e5b4422d"),
+	}
+	mc, err := asyncTask.Handle(t)
+	if err != nil {
+		panic(err)
+	}
+	tools := mcp.MCPGetTools()
+	client := llmcore.NewDeepSeekClient(apiKey, tools)
+	response, err := client.Query(mc)
+	if err != nil {
+		panic(err)
+	}
+	fmt.Println(response)
+	fmt.Println(response.Choices[0].Message.Content)
+	os.Exit(0)
+
+	pid := uuid.New()
+	cid := uuid.New()
+	message := llmcore.DeepSeekRoleContent{
+		Role:    "user",
+		Content: "Привет, подскажи кто ты есть и что умеешь.",
+	}
+	_, err = messages.Write(t, pid, cid, message)
+	if err != nil {
+		panic(err)
+	}
+	os.Exit(0)
+
+	// err = AddConsumer(t)
+	// if err != nil {
+	// 	panic(err)
+	// }
+	// err = ConsumeMsg(t)
+	// if err != nil {
+	// 	panic(err)
+	// }
+
+	// os.Exit(0)
+
 	writer, err := t.YdbClient.Topic().StartWriter("jobs")
 	if err != nil {
 		panic(err)
 	}
-	err = writer.Write(ctx, topicwriter.Message{Data: strings.NewReader("Hello 3123 123")})
+	err = writer.Write(ctx, topicwriter.Message{Data: strings.NewReader("dsfsxcc123d")})
 	if err != nil {
 		panic(err)
 	}
@@ -62,14 +106,9 @@ func main() {
 		panic(err)
 	}
 
-	panic("EXIT!")
-
-	// Инициализация LLM клиента
-	tools := mcp.MCPGetTools()
-	client := llmcore.NewDeepSeekClient(apiKey, tools)
+	os.Exit(0)
 
 	// Создаем цепочку сообщений
-	mc := llmcore.NewMessageChain()
 	mc.AddUserMessage("Привет, дружище, подскажи, какие сеттинги для игры ты знаешь?")
 	res, err := client.Query(mc)
 	if err != nil {

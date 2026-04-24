@@ -4,26 +4,26 @@ import (
 	"github.com/chubakur/dnd/types"
 )
 
-type messageChain struct {
-	chain []deepSeekRoleContent
+type MessageChain struct {
+	chain []DeepSeekRoleContent
 }
 
-func NewMessageChain() *messageChain {
-	return &messageChain{}
+func NewMessageChain() *MessageChain {
+	return &MessageChain{}
 }
 
-func (mc *messageChain) AddUserMessage(message string) {
-	mc.chain = append(mc.chain, deepSeekRoleContent{Role: "user", Content: message})
+func (mc *MessageChain) AddUserMessage(message string) {
+	mc.chain = append(mc.chain, DeepSeekRoleContent{Role: "user", Content: message})
 }
 
-func (mc *messageChain) AddSystemMessage(message string) {
-	mc.chain = append(mc.chain, deepSeekRoleContent{Role: "system", Content: message})
+func (mc *MessageChain) AddSystemMessage(message string) {
+	mc.chain = append(mc.chain, DeepSeekRoleContent{Role: "system", Content: message})
 }
 
-func (mc *messageChain) AddToolMessage(mcpRes types.MCPResult) {
-	mc.chain = append(mc.chain, deepSeekRoleContent{Role: "tool", Content: mcpRes.Result, ToolCallId: mcpRes.ToolCallId})
+func (mc *MessageChain) AddToolMessage(mcpRes types.MCPResult) {
+	mc.chain = append(mc.chain, DeepSeekRoleContent{Role: "tool", Content: mcpRes.Result, ToolCallId: mcpRes.ToolCallId})
 }
 
-func (mc *messageChain) AddMessage(msg deepSeekRoleContent) {
+func (mc *MessageChain) AddMessage(msg DeepSeekRoleContent) {
 	mc.chain = append(mc.chain, msg)
 }

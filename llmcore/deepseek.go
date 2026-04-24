@@ -24,7 +24,7 @@ func NewDeepSeekClient(apiKey string, mcpTools []*mcp.MCPTool) *deepSeekClient {
 	return &deepSeekClient{apiKey: apiKey, tools: mcpTools}
 }
 
-type deepSeekRoleContent struct {
+type DeepSeekRoleContent struct {
 	Role       string                           `json:"role"`
 	Content    string                           `json:"content"`
 	ToolCalls  []types.DeepseekResponseToolCall `json:"tool_calls,omitempty"`
@@ -34,13 +34,13 @@ type deepSeekRoleContent struct {
 type deepSeekQuery struct {
 	Model    string                 `json:"model"`
 	Stream   bool                   `json:"stream"`
-	Messages []deepSeekRoleContent  `json:"messages"`
+	Messages []DeepSeekRoleContent  `json:"messages"`
 	Tools    []types.WrappedMCPTool `json:"tools"`
 }
 
 type deepseekResponseChoice struct {
 	Index        int                 `json:"index"`
-	Message      deepSeekRoleContent `json:"message"`
+	Message      DeepSeekRoleContent `json:"message"`
 	Logprobs     any                 `json:"logprobs"`
 	FinishReason string              `json:"finish_reason"`
 }
@@ -92,11 +92,11 @@ func wrapMcp(mc *mcp.MCPTool) types.WrappedMCPTool {
 	return result
 }
 
-func NewLLMUserMessage(content string) deepSeekRoleContent {
-	return deepSeekRoleContent{Role: "user", Content: content}
+func NewLLMUserMessage(content string) DeepSeekRoleContent {
+	return DeepSeekRoleContent{Role: "user", Content: content}
 }
 
-func (c *deepSeekClient) Query(mc *messageChain) (*deepseekResponse, error) {
+func (c *deepSeekClient) Query(mc *MessageChain) (*deepseekResponse, error) {
 	wrappedTools := make([]types.WrappedMCPTool, len(c.tools))
 	for i, tool := range c.tools {
 		wrappedTools[i] = wrapMcp(tool)
