@@ -1,9 +1,9 @@
 package types
 
 type MCPTool struct {
-	Name        string              `json:"name"`
-	Description string              `json:"description"`
-	Parameters  MCPToolParameters   `json:"parameters"`
+	Name        string            `json:"name"`
+	Description string            `json:"description"`
+	Parameters  MCPToolParameters `json:"parameters"`
 	F           MCPToolFunc
 }
 
@@ -32,8 +32,8 @@ type DeepseekResponseToolCall struct {
 }
 
 type WrappedMCPTool struct {
-	Type     string                  `json:"type"`
-	Function WrappedMCPFunction      `json:"function"`
+	Type     string             `json:"type"`
+	Function WrappedMCPFunction `json:"function"`
 }
 
 type WrappedMCPFunction struct {
@@ -49,8 +49,8 @@ type WrappedMCPFunctionParametersProperty struct {
 }
 
 type WrappedMCPFunctionParameters struct {
-	Type       string                                    `json:"type"`
-	Required   []string                                `json:"required"`
+	Type       string                                          `json:"type"`
+	Required   []string                                        `json:"required"`
 	Properties map[string]WrappedMCPFunctionParametersProperty `json:"properties"`
 }
 

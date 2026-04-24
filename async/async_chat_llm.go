@@ -4,6 +4,7 @@ import (
 	"github.com/chubakur/dnd/llmcore"
 	"github.com/chubakur/dnd/messages"
 	"github.com/chubakur/dnd/transport"
+	"github.com/chubakur/dnd/types"
 	"github.com/google/uuid"
 )
 
@@ -21,7 +22,7 @@ func (a *AsyncTaskChatLlmStruct) Handle(t *transport.Transport) (*llmcore.Messag
 		return chain, err
 	}
 	for _, message := range messages {
-		contentWithRole := llmcore.DeepSeekRoleContent{
+		contentWithRole := types.DeepSeekRoleContent{
 			Role:    message.Role,
 			Content: message.Content,
 		}

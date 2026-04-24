@@ -1,21 +1,22 @@
-package main
+package transport
 
 import (
 	"fmt"
 	"io"
+	"strings"
 
-	"github.com/chubakur/dnd/transport"
 	"github.com/ydb-platform/ydb-go-sdk/v3/topic/topicoptions"
 	"github.com/ydb-platform/ydb-go-sdk/v3/topic/topictypes"
+	"github.com/ydb-platform/ydb-go-sdk/v3/topic/topicwriter"
 )
 
-func AddConsumer(t *transport.Transport) error {
+func AddConsumer(t *Transport) error {
 	return t.YdbClient.Topic().Alter(t.Ctx, "jobs", topicoptions.AlterWithAddConsumers(topictypes.Consumer{
 		Name: "devcons1",
 	}))
 }
 
-func ConsumeMsg(t *transport.Transport) error {
+func ConsumeMsg(t *Transport) error {
 	reader, err := t.YdbClient.Topic().StartReader("devcons1", topicoptions.ReadTopic("jobs"))
 	if err != nil {
 		return err
@@ -35,6 +36,22 @@ func ConsumeMsg(t *transport.Transport) error {
 	fmt.Println(string(content))
 
 	if err = reader.Commit(t.Ctx, msg); err != nil {
+		return err
+	}
+	return nil
+}
+
+func ProduceMsg(t *Transport, topic, msg string) error {
+	writer, err := t.YdbClient.Topic().StartWriter(topic)
+	if err != nil {
+		return err
+	}
+	err = writer.Write(t.Ctx, topicwriter.Message{Data: strings.NewReader(msg)})
+	if err != nil {
+		return err
+	}
+	err = writer.Flush(t.Ctx)
+	if err != nil {
 		return err
 	}
 	return nil

@@ -8,7 +8,6 @@ import (
 	"github.com/chubakur/dnd/llmcore"
 	"github.com/chubakur/dnd/mcp"
 	"github.com/chubakur/dnd/transport"
-	"github.com/chubakur/dnd/types"
 )
 
 type TgRequest struct {
@@ -47,15 +46,10 @@ func WebhookHandler(ctx context.Context, r *TgRequest) (*Response, error) {
 	// Проверяем, есть ли tool calls
 	if len(res.Choices) > 0 && len(res.Choices[0].Message.ToolCalls) > 0 {
 		mc.AddMessage(res.Choices[0].Message)
-		// Создаем transport adapter
-		transport := &types.Transport{
-			YdbClient: t.YdbClient,
-			Ctx:       ctx,
-		}
 
 		// Обрабатываем tool calls
 		for _, toolCall := range res.Choices[0].Message.ToolCalls {
-			mcpResult := mcp.MCPCall(transport, toolCall)
+			mcpResult := mcp.MCPCall(t, toolCall)
 			mc.AddToolMessage(mcpResult)
 		}
 

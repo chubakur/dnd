@@ -6,18 +6,18 @@ import (
 	"fmt"
 	"strings"
 
+	"github.com/chubakur/dnd/transport"
 	"github.com/chubakur/dnd/types"
 	"github.com/google/uuid"
-	"github.com/ydb-platform/ydb-go-sdk/v3"
 )
 
-type mcpToolFunc func(*types.Transport, *types.DeepseekResponseToolCall) (string, error)
+type mcpToolFunc func(*transport.Transport, *types.DeepseekResponseToolCall) (string, error)
 
 type MCPTool struct {
-	Name        string                      `json:"name"`
-	Description string                      `json:"description"`
-	Parameters  types.MCPToolParameters   `json:"parameters"`
-	F           types.MCPToolFunc
+	Name        string                  `json:"name"`
+	Description string                  `json:"description"`
+	Parameters  types.MCPToolParameters `json:"parameters"`
+	F           mcpToolFunc
 }
 
 type wrappedMCPFunction struct {
@@ -84,7 +84,7 @@ type PlayerSession struct {
 	DmId      uuid.UUID `sql:"dm_id" json:"dm_id"`
 }
 
-func mcptool_getWorldDescriptions(t *types.Transport, p *types.DeepseekResponseToolCall) (string, error) {
+func mcptool_getWorldDescriptions(t *transport.Transport, p *types.DeepseekResponseToolCall) (string, error) {
 	// Преобразуем кистинному контексту
 	ctx, ok := t.Ctx.(context.Context)
 	if !ok {
@@ -104,14 +104,9 @@ func mcptool_getWorldDescriptions(t *types.Transport, p *types.DeepseekResponseT
 	return string(bytes), nil
 }
 
-func getWorldDescriptions(ctx context.Context, t *types.Transport) ([]WorldDescription, error) {
+func getWorldDescriptions(ctx context.Context, t *transport.Transport) ([]WorldDescription, error) {
 	var worldDescriptions = make([]WorldDescription, 0)
-
-	// Type assertion to get the YDB client
-	ydbClient, ok := t.YdbClient.(*ydb.Driver)
-	if !ok {
-		return worldDescriptions, fmt.Errorf("YdbClient is not *ydb.Driver")
-	}
+	ydbClient := t.YdbClient
 
 	rows, err := ydbClient.Query().QueryResultSet(ctx, "SELECT id, status, name, description FROM world_descriptions")
 	if err != nil {
@@ -133,7 +128,7 @@ func getWorldDescriptions(ctx context.Context, t *types.Transport) ([]WorldDescr
 	return worldDescriptions, nil
 }
 
-func mcptool_getActiveSessions(t *types.Transport, d *types.DeepseekResponseToolCall) (string, error) {
+func mcptool_getActiveSessions(t *transport.Transport, d *types.DeepseekResponseToolCall) (string, error) {
 	type reqt struct {
 		PlayerId string `json:"player_id"`
 	}
@@ -159,7 +154,7 @@ func mcptool_getActiveSessions(t *types.Transport, d *types.DeepseekResponseTool
 	return string(bytes), nil
 }
 
-func getActivePlayerSessions(t *types.Transport, playerId uuid.UUID) ([]PlayerSession, error) {
+func getActivePlayerSessions(t *transport.Transport, playerId uuid.UUID) ([]PlayerSession, error) {
 	ctx, ok := t.Ctx.(context.Context)
 	if !ok {
 		ctx = context.Background()
@@ -170,10 +165,7 @@ func getActivePlayerSessions(t *types.Transport, playerId uuid.UUID) ([]PlayerSe
 	fmt.Println(query)
 
 	// Type assertion to get the YDB client
-	ydbClient, ok := t.YdbClient.(*ydb.Driver)
-	if !ok {
-		return result, fmt.Errorf("YdbClient is not *ydb.Driver")
-	}
+	ydbClient := t.YdbClient
 
 	res, err := ydbClient.Query().QueryResultSet(ctx, query)
 	if err != nil {
@@ -235,19 +227,19 @@ type MCPResult struct {
 	ToolCallId string
 }
 
-func MCPCall(t *types.Transport, toolQuery types.DeepseekResponseToolCall) types.MCPResult {
+func MCPCall(t *transport.Transport, toolQuery types.DeepseekResponseToolCall) MCPResult {
 	tools := MCPGetTools()
 	for _, tool := range tools {
 		if tool.Name == toolQuery.Function.Name {
 			toolResult, err := tool.F(t, &toolQuery)
 			if err != nil {
-				return types.MCPResult{
+				return MCPResult{
 					Function:   toolQuery.Function.Name,
 					Error:      err,
 					ToolCallId: toolQuery.Id,
 				}
 			}
-			return types.MCPResult{
+			return MCPResult{
 				Function:   toolQuery.Function.Name,
 				Result:     toolResult,
 				ToolCallId: toolQuery.Id,
@@ -255,7 +247,7 @@ func MCPCall(t *types.Transport, toolQuery types.DeepseekResponseToolCall) types
 		}
 	}
 
-	return types.MCPResult{
+	return MCPResult{
 		Function:   toolQuery.Function.Name,
 		Error:      fmt.Errorf("Error: tool %s not found", toolQuery.Function.Name),
 		ToolCallId: toolQuery.Id,
