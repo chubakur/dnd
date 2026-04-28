@@ -3,11 +3,14 @@ package main
 import (
 	"context"
 	"encoding/json"
+	"errors"
 	"fmt"
+	"io"
 	"time"
 
 	"github.com/chubakur/dnd/transport"
 	"github.com/google/uuid"
+	"github.com/ydb-platform/ydb-go-sdk/v3/query"
 )
 
 type TgBinding struct {
@@ -44,17 +47,28 @@ func TgBindHandler(ctx context.Context, req *TgBindingReq) (*Response, error) {
 }
 
 func getBindingByTgId(t *transport.Transport, tgId int64) (*TgBinding, error) {
-	row, err := t.YdbClient.Query().QueryRow(t.Ctx, fmt.Sprintf("SELECT player_id, tg_id, bind_time FROM tg_bindings WHERE tg_id = %d", tgId))
+	result, err := t.YdbClient.Query().QueryResultSet(
+		t.Ctx,
+		fmt.Sprintf("SELECT player_id, tg_id, bind_time FROM tg_bindings WHERE tg_id = %d LIMIT 1", tgId),
+		query.WithIdempotent())
 	if err != nil {
 		return nil, err
 	}
-	if row == nil {
-		return nil, nil
+	defer result.Close(t.Ctx)
+
+	row, err := result.NextRow(t.Ctx)
+	if err != nil {
+		if errors.Is(err, io.EOF) {
+			return nil, nil
+		}
+		return nil, err
 	}
+
 	var tgb TgBinding
-	err = row.ScanStruct(&tgb)
+	err = row.Scan(&tgb.PlayerId, &tgb.TgId, &tgb.BindTime)
 	if err != nil {
 		return nil, err
 	}
+
 	return &tgb, nil
 }
