@@ -93,7 +93,7 @@ jobs:
           yc-sa-id: ${{ secrets.YC_SA_ID }}
           bucket: ${{ secrets.BUCKET }}
           folder-id: ${{ secrets.FOLDER_ID }}
-          function-name: 'goha-tgbind'
+          function-name: 'goha-chats'
           runtime: 'golang123'
           memory: '128Mb'
           execution-timeout: 1
