@@ -9,7 +9,6 @@ import (
 )
 
 type AsyncTaskChatLlmStruct struct {
-	AsyncTask
 	AsyncTaskCommon
 	PlayerId uuid.UUID `json:"player_id"`
 	ChatId   uuid.UUID `json:"chat_id"`
