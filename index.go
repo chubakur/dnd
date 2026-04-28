@@ -7,6 +7,7 @@ import (
 	"time"
 
 	"github.com/chubakur/dnd/async"
+	"github.com/chubakur/dnd/chats"
 	"github.com/chubakur/dnd/dndcore"
 	"github.com/chubakur/dnd/llmcore"
 	"github.com/chubakur/dnd/mcp"
@@ -61,6 +62,18 @@ func main() {
 		panic(err)
 	}
 	fmt.Println(bind)
+	chat, err := chats.GetActive(t, bind.PlayerId)
+	if err != nil {
+		panic(err)
+	}
+	fmt.Println(chat)
+	if chat == nil {
+		chat, err = chats.CreateNew(t, bind.PlayerId)
+		if err != nil {
+			panic(err)
+		}
+		fmt.Println(chat)
+	}
 
 	// transport.ProduceMsg(t, "jobs", "{\"type\": 123, \"v\": \"k\"}")
 	os.Exit(0)
