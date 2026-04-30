@@ -35,7 +35,7 @@ func errorMsg(e error) (*Response, error) {
 	return &Response{
 		StatusCode: 500,
 		Body:       e.Error(),
-	}, nil
+	}, e
 }
 
 func main() {

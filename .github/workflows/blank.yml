@@ -109,6 +109,29 @@ jobs:
             ./go.mod
             ./go.sum
 
+      - name: Messages Deploy
+        uses: yc-actions/yc-sls-function@v4.1.0
+        with:
+          yc-sa-json-credentials: ${{ secrets.YC_SA_JSON_CREDENTIALS }}
+          yc-sa-id: ${{ secrets.YC_SA_ID }}
+          bucket: ${{ secrets.BUCKET }}
+          folder-id: ${{ secrets.FOLDER_ID }}
+          function-name: 'goha-messages'
+          runtime: 'golang123'
+          memory: '128Mb'
+          execution-timeout: 1
+          service-account: ${{ secrets.YC_SA_ID }}
+          entrypoint: 'messages_handler.MessagesHandler'
+          source-root: '.'
+          environment: |
+            YDB_METADATA_CREDENTIALS=1
+            YDB_CONNECTION_STRING=${{ secrets.YDB_CONNECTION }}
+            DEEPSEEK_API_KEY=${{ secrets.DEEPSEEK_API_KEY }}
+          include: |
+            ./**/*.go
+            ./go.mod
+            ./go.sum
+
       - name: Tasks Producer Deploy
         uses: yc-actions/yc-sls-function@v4.1.0
         with:
