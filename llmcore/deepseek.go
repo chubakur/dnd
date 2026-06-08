@@ -174,9 +174,11 @@ func (c *deepSeekClient) AgentExecutor(t *transport.Transport, pc *dndcore.GameC
 		return mc, result, err
 	}
 	mc.AddMessage(choice.Message)
-	err = messages.Write(t, pc.PlayerId, pc.ChatId, choice.Message)
-	if err != nil {
-		return mc, result, err
+	if pc != nil {
+		err = messages.Write(t, pc.PlayerId, pc.ChatId, choice.Message)
+		if err != nil {
+			return mc, result, err
+		}
 	}
 	switch choice.FinishReason {
 	case finish_reason_stop:
@@ -191,9 +193,11 @@ func (c *deepSeekClient) AgentExecutor(t *transport.Transport, pc *dndcore.GameC
 				return mc, result, mcpRes.Error
 			}
 			mc.AddToolMessage(mcpRes)
-			err = messages.Write(t, pc.PlayerId, pc.ChatId, types.DeepSeekRoleContent{Role: "tool", Content: mcpRes.Result, ToolCallId: mcpRes.ToolCallId})
-			if err != nil {
-				return mc, result, err
+			if pc != nil {
+				err = messages.Write(t, pc.PlayerId, pc.ChatId, types.DeepSeekRoleContent{Role: "tool", Content: mcpRes.Result, ToolCallId: mcpRes.ToolCallId})
+				if err != nil {
+					return mc, result, err
+				}
 			}
 		}
 		return c.AgentExecutor(t, pc, mc, limit-1)

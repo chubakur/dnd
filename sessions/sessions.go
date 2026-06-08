@@ -63,6 +63,15 @@ func MakeActive(t *transport.Transport, playerId, sessionId uuid.UUID) error {
 	return t.YdbClient.Query().Exec(t.Ctx, activateSql)
 }
 
+func UpdateContext(t *transport.Transport, playerId, sessionId uuid.UUID, newContext string) error {
+	escapedContext := strings.ReplaceAll(newContext, "'", "''")
+	sql := fmt.Sprintf(
+		"UPDATE sessions SET context = '%s', update_time = CurrentUtcDatetime() WHERE player_id = Uuid('%s') AND session_id = Uuid('%s')",
+		escapedContext, playerId.String(), sessionId.String(),
+	)
+	return t.YdbClient.Query().Exec(t.Ctx, sql)
+}
+
 func CreateSession(t *transport.Transport, playerId uuid.UUID, worldContext string) (*Session, error) {
 	sessionId := uuid.New()
 	escapedContext := strings.ReplaceAll(worldContext, "'", "''")

@@ -19,6 +19,8 @@ type DeepSeekAgent struct {
 	chain  *MessageChain
 }
 
+// NewDeepSeekAgent creates an agent with the given system prompt.
+// Use dndcore.DMSystemPrompt to build the prompt with world/session context.
 func NewDeepSeekAgent(t *transport.Transport, client *deepSeekClient, systemPrompt string) *DeepSeekAgent {
 	chain := NewMessageChain()
 	if systemPrompt != "" {
