@@ -1,6 +1,7 @@
 package main
 
 import (
+	"context"
 	"io"
 	"net/http"
 	"os"
@@ -14,7 +15,7 @@ import (
 )
 
 func TestLocalHealth(t *testing.T) {
-	resp, err := HealthHandler(t.Context())
+	resp, err := HealthHandler(context.Background())
 	if err != nil {
 		t.Fatal(err)
 	}
