@@ -3,6 +3,7 @@ package main
 import (
 	"context"
 	"fmt"
+	"log/slog"
 	"os"
 
 	"github.com/chubakur/dnd/llmcore"
@@ -16,8 +17,11 @@ type TgRequest struct {
 }
 
 func WebhookHandler(ctx context.Context, r *TgRequest) (*Response, error) {
+	slog.InfoContext(ctx, "webhook received", "tg_id", r.TgId)
+
 	t, close, err := transport.InitTransport(ctx)
 	if err != nil {
+		slog.ErrorContext(ctx, "transport init failed", "err", err)
 		return errorMsg(err)
 	}
 	defer close()
@@ -27,39 +31,32 @@ func WebhookHandler(ctx context.Context, r *TgRequest) (*Response, error) {
 		return errorMsg(fmt.Errorf("DEEPSEEK_API_KEY not set"))
 	}
 
-	// Получаем MCP tools
 	tools := mcp.MCPGetTools()
-
-	// Инициализируем LLM клиент
 	client := llmcore.NewDeepSeekClient(apiKey, tools)
-
-	// Создаем цепочку сообщений
 	mc := llmcore.NewMessageChain()
 	mc.AddUserMessage(r.Message)
 
-	// Выполняем запрос
 	res, err := client.Query(mc)
 	if err != nil {
+		slog.ErrorContext(ctx, "llm query failed", "err", err)
 		return errorMsg(err)
 	}
 
-	// Проверяем, есть ли tool calls
 	if len(res.Choices) > 0 && len(res.Choices[0].Message.ToolCalls) > 0 {
 		mc.AddMessage(res.Choices[0].Message)
-
-		// Обрабатываем tool calls
 		for _, toolCall := range res.Choices[0].Message.ToolCalls {
+			slog.InfoContext(ctx, "mcp tool call", "tool", toolCall.Function.Name)
 			mcpResult := mcp.MCPCall(t, toolCall)
 			mc.AddToolMessage(mcpResult)
 		}
-
-		// Второй запрос с результатами tools
 		res, err = client.Query(mc)
 		if err != nil {
+			slog.ErrorContext(ctx, "llm query after tools failed", "err", err)
 			return errorMsg(err)
 		}
 	}
 
+	slog.InfoContext(ctx, "webhook response sent", "tg_id", r.TgId)
 	return &Response{
 		StatusCode: 200,
 		Body:       res.Choices[0].Message.Content,

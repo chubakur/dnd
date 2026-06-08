@@ -28,3 +28,7 @@ func (mc *MessageChain) AddToolMessage(mcpRes mcp.MCPResult) {
 func (mc *MessageChain) AddMessage(msg types.DeepSeekRoleContent) {
 	mc.chain = append(mc.chain, msg)
 }
+
+func (mc *MessageChain) Messages() []types.DeepSeekRoleContent {
+	return mc.chain
+}
