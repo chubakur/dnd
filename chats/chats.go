@@ -57,6 +57,12 @@ func CreateNew(t *transport.Transport, playerId uuid.UUID) (*Chat, error) {
 	}, nil
 }
 
-func MakeActive(playerId, chatId uuid.UUID) error {
-	return nil
+func MakeActive(t *transport.Transport, playerId, chatId uuid.UUID) error {
+	// YDB chats table uses update_time for ordering, so we just touch the target chat
+	// to make it the latest (most recently updated = active)
+	sqlQuery := fmt.Sprintf(
+		"UPDATE chats SET update_time = CurrentUtcDatetime() WHERE player_id = Uuid('%s') AND chat_id = Uuid('%s')",
+		playerId.String(), chatId.String(),
+	)
+	return t.YdbClient.Query().Exec(t.Ctx, sqlQuery)
 }
