@@ -4,6 +4,7 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
+	"log/slog"
 
 	"github.com/chubakur/dnd/chats"
 	"github.com/chubakur/dnd/transport"
@@ -29,8 +30,10 @@ func ChatsHandler(ctx context.Context, req *chatsRequest) (*Response, error) {
 	defer c()
 	chat, err := chats.GetActive(t, playerId)
 	if err != nil {
+		slog.ErrorContext(ctx, "get active chat failed", "player_id", playerId, "err", err)
 		return errorMsg(err)
 	}
+	slog.InfoContext(ctx, "get active chat", "player_id", playerId, "found", chat != nil)
 	jbind, err := json.Marshal(chat)
 	if err != nil {
 		return errorMsg(err)

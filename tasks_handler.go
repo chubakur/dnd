@@ -4,6 +4,7 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
+	"log/slog"
 
 	"github.com/chubakur/dnd/async"
 	"github.com/chubakur/dnd/transport"
@@ -20,10 +21,12 @@ func TasksProduceHandler(ctx context.Context, req *tasksProduceRequest) (*Respon
 	}
 	parsed, e := async.ParseAsync(req.Type, req.Data)
 	if e != nil {
+		slog.ErrorContext(ctx, "parse async task failed", "type", req.Type, "err", e)
 		return errorMsg(e)
 	}
 	t, c, e := transport.InitTransport(ctx)
 	if e != nil {
+		slog.ErrorContext(ctx, "transport init failed", "err", e)
 		return errorMsg(e)
 	}
 	defer c()
@@ -33,9 +36,10 @@ func TasksProduceHandler(ctx context.Context, req *tasksProduceRequest) (*Respon
 	}
 	e = transport.ProduceMsg(t, "jobs", string(jdata))
 	if e != nil {
+		slog.ErrorContext(ctx, "produce message failed", "type", req.Type, "err", e)
 		return errorMsg(e)
 	}
-
+	slog.InfoContext(ctx, "task queued", "type", req.Type)
 	return &Response{
 		StatusCode: 200,
 		Body:       "OK",
