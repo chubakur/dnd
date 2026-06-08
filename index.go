@@ -43,6 +43,12 @@ func main() {
 	if apiKey == "" {
 		panic("Set DEEPSEEK_API_KEY")
 	}
+	debugTgIdStr := os.Getenv("DEBUG_TG_ID")
+	if debugTgIdStr == "" {
+		panic("Set DEBUG_TG_ID")
+	}
+	var debugTgId int64
+	fmt.Sscanf(debugTgIdStr, "%d", &debugTgId)
 	ctx, cancel := context.WithTimeout(context.Background(), 30*time.Second)
 	defer cancel()
 	fmt.Println("Starting InitTransport...")
@@ -57,7 +63,7 @@ func main() {
 	}
 	defer close()
 
-	bind, err := getBindingByTgId(t, 204008961)
+	bind, err := getBindingByTgId(t, debugTgId)
 	if err != nil {
 		panic(err)
 	}

@@ -51,9 +51,9 @@ func GetMessagesByChatId(t *transport.Transport, playerId, chatId uuid.UUID) ([]
 }
 
 func AddToChat(t *transport.Transport, message *Message) error {
-	sqlQuery := fmt.Sprintf(`INSERT INTO messages (message_id, player_id, chat_id, time, role, content) 
-	VALUES (Uuid('%s'), Uuid('%s'), Uuid('%s'), CurrentUtcDatetime(), '%s', "%s")`,
-		message.MessageId, message.PlayerId, message.ChatId, message.Role, message.Content)
+	escapedContent := strings.ReplaceAll(message.Content, "'", "''")
+	sqlQuery := fmt.Sprintf(`INSERT INTO messages (message_id, player_id, chat_id, time, role, content) VALUES (Uuid('%s'), Uuid('%s'), Uuid('%s'), CurrentUtcDatetime(), '%s', '%s')`,
+		message.MessageId, message.PlayerId, message.ChatId, message.Role, escapedContent)
 	return t.YdbClient.Query().Exec(t.Ctx, sqlQuery)
 }
 
