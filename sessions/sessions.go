@@ -4,6 +4,7 @@ import (
 	"errors"
 	"fmt"
 	"io"
+	"strings"
 	"time"
 
 	"github.com/chubakur/dnd/transport"
@@ -64,9 +65,10 @@ func MakeActive(t *transport.Transport, playerId, sessionId uuid.UUID) error {
 
 func CreateSession(t *transport.Transport, playerId uuid.UUID, worldContext string) (*Session, error) {
 	sessionId := uuid.New()
+	escapedContext := strings.ReplaceAll(worldContext, "'", "''")
 	insertSql := fmt.Sprintf(
 		"INSERT INTO sessions (player_id, session_id, state, context, create_time, update_time) VALUES (Uuid('%s'), Uuid('%s'), 1, '%s', CurrentUtcDatetime(), CurrentUtcDatetime())",
-		playerId.String(), sessionId.String(), worldContext,
+		playerId.String(), sessionId.String(), escapedContext,
 	)
 	err := t.YdbClient.Query().Exec(t.Ctx, insertSql)
 	if err != nil {

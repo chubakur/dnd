@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"net/http"
 	"strings"
+	"time"
 
 	"github.com/chubakur/dnd/dndcore"
 	"github.com/chubakur/dnd/mcp"
@@ -133,8 +134,25 @@ func (c *deepSeekClient) Query(mc *MessageChain) (*deepseekResponse, error) {
 		return nil, err
 	}
 	defer resp.Body.Close()
+	if resp.StatusCode == http.StatusTooManyRequests || resp.StatusCode == http.StatusServiceUnavailable {
+		time.Sleep(2 * time.Second)
+		return c.Query(mc)
+	}
+	if resp.StatusCode != http.StatusOK {
+		var apiErr struct {
+			Error struct {
+				Message string `json:"message"`
+				Type    string `json:"type"`
+				Code    any    `json:"code"`
+			} `json:"error"`
+		}
+		decoder := json.NewDecoder(resp.Body)
+		if decErr := decoder.Decode(&apiErr); decErr == nil && apiErr.Error.Message != "" {
+			return nil, fmt.Errorf("deepseek API error %d: %s (%s)", resp.StatusCode, apiErr.Error.Message, apiErr.Error.Type)
+		}
+		return nil, fmt.Errorf("deepseek API error %d", resp.StatusCode)
+	}
 	deepseekResult := deepseekResponse{}
-	// TODO: decode errors if not 200
 	decoder := json.NewDecoder(resp.Body)
 	err = decoder.Decode(&deepseekResult)
 	if err != nil {
