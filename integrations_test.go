@@ -2,6 +2,8 @@ package main
 
 import (
 	"context"
+	"encoding/base64"
+	"encoding/json"
 	"io"
 	"net/http"
 	"os"
@@ -142,5 +144,50 @@ func TestParseJob_Unknown(t *testing.T) {
 	_, err := ParseJob([]byte(`{"name":"nonexistent"}`))
 	if err == nil {
 		t.Error("expected error for unknown job name")
+	}
+}
+
+// --- queue handler payload decoding ---
+
+func TestTopicMessagePayload_Base64(t *testing.T) {
+	raw := `{"type":"llmCall","execution_id":"x"}`
+	var m ydbTopicMessage
+	m.Details.Data = base64.StdEncoding.EncodeToString([]byte(raw))
+	if got := m.payload(); got != raw {
+		t.Errorf("expected base64 to decode to %q, got %q", raw, got)
+	}
+}
+
+func TestTopicMessagePayload_Raw(t *testing.T) {
+	// A non-base64 string should be returned as-is.
+	var m ydbTopicMessage
+	m.Details.Message.Body = `{"type":"llmCall"}`
+	if got := m.payload(); got != `{"type":"llmCall"}` {
+		t.Errorf("expected raw passthrough, got %q", got)
+	}
+}
+
+func TestTopicMessagePayload_Empty(t *testing.T) {
+	var m ydbTopicMessage
+	if got := m.payload(); got != "" {
+		t.Errorf("expected empty string, got %q", got)
+	}
+}
+
+func TestJobPayload_Unmarshal(t *testing.T) {
+	execId := uuid.New()
+	playerId := uuid.New()
+	chatId := uuid.New()
+	payload := `{"type":"llmCall","execution_id":"` + execId.String() +
+		`","player_id":"` + playerId.String() + `","chat_id":"` + chatId.String() + `"}`
+	var job async.AsyncTaskChatLlmStruct
+	if err := json.Unmarshal([]byte(payload), &job); err != nil {
+		t.Fatalf("unmarshal failed: %v", err)
+	}
+	if job.ExecutionId != execId {
+		t.Errorf("execution_id mismatch: got %s", job.ExecutionId)
+	}
+	if job.PlayerId != playerId || job.ChatId != chatId {
+		t.Error("player_id/chat_id mismatch")
 	}
 }
