@@ -2,33 +2,140 @@ package main
 
 import (
 	"context"
+	"encoding/base64"
+	"encoding/json"
 	"fmt"
+	"log/slog"
 	"os"
 	"time"
 
 	"github.com/chubakur/dnd/async"
-	"github.com/chubakur/dnd/chats"
 	"github.com/chubakur/dnd/dndcore"
+	"github.com/chubakur/dnd/executions"
 	"github.com/chubakur/dnd/llmcore"
 	"github.com/chubakur/dnd/mcp"
 	"github.com/chubakur/dnd/transport"
-	"github.com/google/uuid"
 )
 
-type Request struct {
-	Message string `json:"message"`
-}
+const agentExecutorLimit = 10
 
 type Response struct {
 	StatusCode int `json:"statusCode"`
 	Body       any `json:"body"`
 }
 
-func QueueHandler(ctx context.Context, req *Request) (*Response, error) {
-	return &Response{
-		StatusCode: 200,
-		Body:       req.Message + " Ok",
-	}, nil
+// ydbTopicEvent is the payload a YDB Topic / Data Streams trigger delivers.
+// The actual message bytes live (base64-encoded) under one of a few paths
+// depending on the trigger type, so we probe several.
+type ydbTopicEvent struct {
+	Messages []ydbTopicMessage `json:"messages"`
+}
+
+type ydbTopicMessage struct {
+	Details struct {
+		Data    string `json:"data"`
+		Message struct {
+			Data string `json:"data"`
+			Body string `json:"body"`
+		} `json:"message"`
+	} `json:"details"`
+}
+
+// payload returns the decoded message bytes, probing the known trigger paths.
+func (m ydbTopicMessage) payload() string {
+	for _, candidate := range []string{m.Details.Data, m.Details.Message.Data, m.Details.Message.Body} {
+		if candidate == "" {
+			continue
+		}
+		// Trigger payloads are usually base64-encoded; fall back to raw.
+		if decoded, err := base64.StdEncoding.DecodeString(candidate); err == nil {
+			return string(decoded)
+		}
+		return candidate
+	}
+	return ""
+}
+
+// QueueHandler consumes LLM jobs from the YDB topic trigger, runs the agent,
+// and writes the result back to the executions table for the workflow to poll.
+func QueueHandler(ctx context.Context, raw json.RawMessage) (*Response, error) {
+	slog.InfoContext(ctx, "queue handler invoked", "raw", string(raw))
+
+	var event ydbTopicEvent
+	if err := json.Unmarshal(raw, &event); err != nil {
+		slog.ErrorContext(ctx, "failed to parse trigger event", "err", err)
+		return errorMsg(err)
+	}
+	if len(event.Messages) == 0 {
+		slog.WarnContext(ctx, "queue event had no messages")
+		return &Response{StatusCode: 200, Body: "no messages"}, nil
+	}
+
+	apiKey := os.Getenv("DEEPSEEK_API_KEY")
+	if apiKey == "" {
+		return errorMsg(fmt.Errorf("DEEPSEEK_API_KEY not set"))
+	}
+
+	t, closeT, err := transport.InitTransport(ctx)
+	if err != nil {
+		slog.ErrorContext(ctx, "transport init failed", "err", err)
+		return errorMsg(err)
+	}
+	defer closeT()
+
+	processed := 0
+	for _, m := range event.Messages {
+		payload := m.payload()
+		if payload == "" {
+			slog.WarnContext(ctx, "empty message payload, skipping")
+			continue
+		}
+		if err := processJob(ctx, t, apiKey, []byte(payload)); err != nil {
+			// processJob already records the error on the execution; log and continue.
+			slog.ErrorContext(ctx, "job processing failed", "err", err)
+		}
+		processed++
+	}
+
+	return &Response{StatusCode: 200, Body: fmt.Sprintf("processed %d", processed)}, nil
+}
+
+// processJob runs one LLM job and persists its result/error on the execution.
+func processJob(ctx context.Context, t *transport.Transport, apiKey string, payload []byte) error {
+	var job async.AsyncTaskChatLlmStruct
+	if err := json.Unmarshal(payload, &job); err != nil {
+		slog.ErrorContext(ctx, "bad job payload", "err", err)
+		return err
+	}
+	slog.InfoContext(ctx, "processing job", "execution_id", job.ExecutionId, "chat_id", job.ChatId)
+
+	chain, err := job.Handle(t)
+	if err != nil {
+		_ = executions.SetError(t, job.ExecutionId, err.Error())
+		return err
+	}
+
+	client := llmcore.NewDeepSeekClient(apiKey, mcp.MCPGetTools())
+	pc := &dndcore.GameContext{PlayerId: job.PlayerId, ChatId: job.ChatId}
+	_, resp, err := client.AgentExecutor(t, pc, chain, agentExecutorLimit)
+	if err != nil {
+		_ = executions.SetError(t, job.ExecutionId, err.Error())
+		return err
+	}
+
+	choice := resp.GetFirstChoice()
+	if choice == nil {
+		err := fmt.Errorf("empty response from LLM")
+		_ = executions.SetError(t, job.ExecutionId, err.Error())
+		return err
+	}
+
+	if err := executions.SetDone(t, job.ExecutionId, choice.Message.Content); err != nil {
+		slog.ErrorContext(ctx, "failed to store result", "execution_id", job.ExecutionId, "err", err)
+		return err
+	}
+	slog.InfoContext(ctx, "job done", "execution_id", job.ExecutionId)
+	return nil
 }
 
 func errorMsg(e error) (*Response, error) {
@@ -38,71 +145,17 @@ func errorMsg(e error) (*Response, error) {
 	}, e
 }
 
+// main is a local debug entrypoint; the serverless runtime uses QueueHandler.
 func main() {
-	apiKey := os.Getenv("DEEPSEEK_API_KEY")
-	if apiKey == "" {
+	if os.Getenv("DEEPSEEK_API_KEY") == "" {
 		panic("Set DEEPSEEK_API_KEY")
 	}
-	debugTgIdStr := os.Getenv("DEBUG_TG_ID")
-	if debugTgIdStr == "" {
-		panic("Set DEBUG_TG_ID")
-	}
-	var debugTgId int64
-	fmt.Sscanf(debugTgIdStr, "%d", &debugTgId)
 	ctx, cancel := context.WithTimeout(context.Background(), 30*time.Second)
 	defer cancel()
-	fmt.Println("Starting InitTransport...")
-	t, close, err := transport.InitTransport(ctx)
-	if err != nil {
-		fmt.Printf("InitTransport error type: %T\n", err)
-		fmt.Printf("Full error: %+v\n", err)
-	}
-	fmt.Println("InitTransport completed")
+	_, closeT, err := transport.InitTransport(ctx)
 	if err != nil {
 		panic(err)
 	}
-	defer close()
-
-	bind, err := getBindingByTgId(t, debugTgId)
-	if err != nil {
-		panic(err)
-	}
-	fmt.Println(bind)
-	chat, err := chats.GetActive(t, bind.PlayerId)
-	if err != nil {
-		panic(err)
-	}
-	fmt.Println(chat)
-	if chat == nil {
-		chat, err = chats.CreateNew(t, bind.PlayerId)
-		if err != nil {
-			panic(err)
-		}
-		fmt.Println(chat)
-	}
-
-	// transport.ProduceMsg(t, "jobs", "{\"type\": 123, \"v\": \"k\"}")
-	os.Exit(0)
-
-	asyncTask := async.AsyncTaskChatLlmStruct{
-		PlayerId: uuid.MustParse("4e54ac3e-9c91-4dc0-a582-9439f8756a3a"),
-		ChatId:   uuid.MustParse("40fce1fe-5b56-424c-b1e2-1da6e5b4422d"),
-	}
-	mc, err := asyncTask.Handle(t)
-	if err != nil {
-		panic(err)
-	}
-	tools := mcp.MCPGetTools()
-	client := llmcore.NewDeepSeekClient(apiKey, tools)
-	pc := &dndcore.GameContext{
-		PlayerId: uuid.MustParse("4e54ac3e-9c91-4dc0-a582-9439f8756a3a"),
-		ChatId:   uuid.MustParse("40fce1fe-5b56-424c-b1e2-1da6e5b4422d"),
-	}
-	mc, response, err := client.AgentExecutor(t, pc, mc, 3)
-	if err != nil {
-		panic(err)
-	}
-	fmt.Println(response)
-	fmt.Println(response.Choices[0].Message.Content)
-	os.Exit(0)
+	defer closeT()
+	fmt.Println("transport initialized")
 }
